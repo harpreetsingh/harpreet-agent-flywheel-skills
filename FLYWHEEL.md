@@ -86,6 +86,11 @@ wave-gate, sprint-close, review, recovery).
 │    Wires dependencies (test beads block impl beads)                     │
 │    CLI beads for every API/UI feature                                   │
 │         ↓                                                               │
+│    /test-coverage <project-dir>                                         │
+│         ↓                                                               │
+│    Verify: full unit tests (no mocks), e2e integration tests with       │
+│    detailed logging, CLI tests. Creates beads for every gap.            │
+│         ↓                                                               │
 │    /beads-review                                                        │
 │         ↓                                                               │
 │    Structural review: orphans, cycles, TDD gaps, domain balance         │
@@ -134,14 +139,20 @@ wave-gate, sprint-close, review, recovery).
 │  │       ↓                                                           │   │
 │  │  QA VERIFY: tests pass, acceptance criteria met                   │   │
 │  │       ↓                                                           │   │
+│  │  DEEP REVIEW (rolling, mid-wave):                                 │   │
+│  │    Idle workers do alternating explore/cross-agent review          │   │
+│  │    UBS first → explore → cross-review → converge (2 clean rounds) │   │
+│  │       ↓                                                           │   │
 │  │  ╔═══ WAVE GATE (hard — blocks Wave N+1) ═══════════════════╗    │   │
 │  │  ║ 0. Stub scan + test integrity scan (grep, mechanical)    ║    │   │
+│  │  ║ 0c. UBS scan (security + null safety + async, mechanical) ║    │   │
 │  │  ║ 1. All tickets individually QA-passed                     ║    │   │
 │  │  ║ 2. Integration quality gates (ruff + pytest / lint + tsc) ║    │   │
 │  │  ║ 3. Review flywheel (3-4 ephemeral agents in parallel):    ║    │   │
 │  │  ║    • CORRECTNESS — bugs, logic errors, stubs, fakes      ║    │   │
-│  │  ║    • SECURITY — OWASP top 10, injection, auth bypass      ║    │   │
-│  │  ║    • COMPACTION — dead code, over-engineering, bloat       ║    │   │
+│  │  ║    • SECURITY — arch-level: trust boundaries, auth flows  ║    │   │
+│  │  ║      (UBS already caught pattern-level security issues)    ║    │   │
+│  │  ║    • COMPACTION — reinvention, UX drift, dead code, bloat   ║    │   │
 │  │  ║    • UX (frontend waves only) — patterns, a11y, states    ║    │   │
 │  │  ║ 4. QA smoke test                                          ║    │   │
 │  │  ║ 5. Checkpoint written, lifecycle bead updated              ║    │   │
@@ -151,13 +162,14 @@ wave-gate, sprint-close, review, recovery).
 │  └── next wave ─────────────────────────────────────────────────────┘   │
 │         ↓                                                               │
 │  ┌─── Sprint Close ────────────────────────────────────────────────┐    │
-│  │  1. Final quality gates                                         │    │
-│  │  2. /docs-gen-int → architecture.md, api.md, cli.md, etc.      │    │
-│  │  3. /docs-gen-ext → docs/site/features/, guides/, reference/    │    │
-│  │  4. /fresh-eyes <feature-dir> (code + plan + docs + beads)      │    │
-│  │  5. /land-the-plane → commit + push + PR                        │    │
-│  │  6. Lifecycle bead completed, final checkpoint written           │    │
-│  │  7. Summary to user → shutdown                                  │    │
+│  │  1. Final quality gates + UBS full project scan                  │    │
+│  │  2. /test-coverage — verify full unit + e2e + CLI test coverage  │    │
+│  │  3. /docs-gen-int → architecture.md, api.md, cli.md, etc.      │    │
+│  │  4. /docs-gen-ext → docs/site/features/, guides/, reference/    │    │
+│  │  5. /fresh-eyes <feature-dir> (code + plan + docs + beads)      │    │
+│  │  6. /land-the-plane → commit + push + PR                        │    │
+│  │  7. Lifecycle bead completed, final checkpoint written           │    │
+│  │  8. Summary to user → shutdown                                  │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                         │
 │    OUTPUT: docs/features/<slug>/sprint-state.md (completed)             │
@@ -246,6 +258,7 @@ Beads (bd):
 | **Director** | Sprint coordinator. Creates team, assigns work, runs wave gates, manages lifecycle bead. Never implements. | All | Opus-tier. Spawns workers + QA. Writes checkpoints to `sprint-state.md`. |
 | **QA** | Independent verifier. Checks every ticket against acceptance criteria. Never implements. | Read, Grep, Glob, Bash, SendMessage | Permanent teammate. Reports PASS/FAIL. Strict — 80% of criteria = FAIL. |
 | **Bug Hunter** | Ephemeral wave-gate reviewer. One lens per instance (correctness, security, compaction, UX). | Read, Grep, Glob, Bash, SendMessage | Spawned fresh per wave. Files beads for issues. Shuts down after reporting. |
+| **Peer Reviewer** | Mid-wave deep reviewer. Two modes: EXPLORE (random exploration) and CROSS-REVIEW (boundary-focused). | Read, Edit, Grep, Glob, Bash | Sent to idle workers during implementation. Alternating modes converge on 2 clean rounds. |
 | **Workers** | General-purpose implementation agents. Write code, tests, docs. | All | Sonnet or Opus tier. Different worker writes tests vs implementation (TDD). Cap: 5. |
 
 ---
@@ -259,9 +272,11 @@ the tests (red phase) than the one who writes the implementation (green phase).
 QA verifies tests fail for the right reasons before implementation begins.
 
 ### Wave Gates
-No Wave N+1 work begins until the gate passes: individual QA → integration quality
-gates → review flywheel (3-4 parallel lens agents) → smoke test → checkpoint →
-human review (Wave 1: blocking, Wave 2+: async).
+No Wave N+1 work begins until the gate passes: stub scan → UBS scan → individual
+QA → integration quality gates → review flywheel (3-4 parallel lens agents) →
+smoke test → checkpoint → human review (Wave 1: blocking, Wave 2+: async).
+Mid-wave deep review (alternating explore/cross-agent) runs on idle workers during
+implementation and converges before the gate.
 
 ### Sprint State & Recovery
 The Director writes checkpoints to `<feature_dir>/sprint-state.md` after every

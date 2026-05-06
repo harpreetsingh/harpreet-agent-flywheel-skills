@@ -126,12 +126,31 @@ Verify the worker's implementation makes tests pass and meets acceptance criteri
 - [ ] **Quality gates pass** — run the project's quality gates:
   - Backend: `cd backend && uv run ruff check . && uv run ruff format --check .`
   - Frontend: `cd frontend && npm run lint && npx tsc --noEmit`
+- [ ] **UBS scan verified** — check that the worker's completion evidence includes
+  `UBS scan: CLEAN` or `UBS scan: N/A`. If CLEAN, trust it. If N/A, run UBS
+  yourself on the worker's changed files if the tool is available.
+- [ ] **Reuse check verified** — check that the worker's completion evidence
+  includes a specific `Reuse check:` with named files/dirs searched. Vague
+  claims like "I checked the codebase" = FAIL. If the worker built new code,
+  verify their justification by grepping for the concept yourself.
 - [ ] **No scope creep** — worker didn't add features, refactors, or "improvements"
-  beyond what the bead specified
+  beyond what the bead specified. This is a CRITICAL check for brownfield codebases.
+  Review the diff carefully:
+  - Did the worker modify styling, spacing, or layout on components they touched
+    but weren't asked to change? **FAIL** — silent UX drift causes rework.
+  - Did the worker create a new component/utility/hook when an existing one could
+    have been extended? Check the `Reuse check:` in their completion evidence —
+    if they built new, verify their justification. Grep for the concept yourself.
+  - Did the worker rename or restructure files outside the bead's scope?
+  - Did the diff touch files that aren't mentioned in the bead?
+  **The diff should contain ONLY changes required by the bead.** If it also
+  contains "improvements" to adjacent code, FAIL with: "Revert out-of-scope
+  changes to [files]. Your bead is [scope], not a refactor of [component]."
 
 ### Frontend Beads
 
-Frontend tickets need additional verification beyond code existence.
+Frontend tickets get ALL impl bead checks above (tests, stub scan, UBS, reuse,
+scope creep, reality check) PLUS these additional frontend-specific checks:
 
 - [ ] **Route file exists** — the expected `page.tsx` or `page.ts` is at the
   right path in the app router
@@ -143,8 +162,19 @@ Frontend tickets need additional verification beyond code existence.
   outside of git history)
 - [ ] **Key UI elements present** — grep for expected element text, component
   names, or CSS classes mentioned in the bead
+- [ ] **No UX drift** — compare the worker's changes against the established
+  patterns in the codebase. Does the new code use the same spacing scale,
+  button styles, card layouts, and empty states as existing pages? If the
+  bead's Phase 0 enrichment specified a UX baseline ("match MemberTable
+  pattern"), verify the worker followed it.
+- [ ] **No reinvented components** — did the worker create a new component
+  that duplicates an existing one? Grep for similar component names and
+  purposes. If an existing component could have been extended with a prop
+  or variant, FAIL: "Use existing [component] instead of creating [new file]."
 
 ### Backend API Beads
+
+All impl bead checks above apply, plus:
 
 - [ ] **Endpoint exists** — grep for the route decorator (`@router.get`, `@app.post`, etc.)
 - [ ] **Endpoint responds** — if the server is running, curl the endpoint and
@@ -153,6 +183,8 @@ Frontend tickets need additional verification beyond code existence.
   (check for validation, try/except, HTTP status codes)
 
 ### Schema/Migration Beads
+
+Stub scan and scope creep checks apply, plus:
 
 - [ ] **Migration file exists** — check `supabase/migrations/`
 - [ ] **Tables created** — grep for `CREATE TABLE` statements

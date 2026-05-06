@@ -103,6 +103,7 @@ bd update <lifecycle-id> --notes="
 - [ ] Phase 0: TDD pairing verified
 - [ ] Wave 1: Tickets assigned
 - [ ] Wave 1: Stub scan CLEAN (Step 0)
+- [ ] Wave 1: UBS scan CLEAN (Step 0c)
 - [ ] Wave 1: All tickets QA-passed
 - [ ] Wave 1: Integration quality gates PASS
 - [ ] Wave 1: Review flywheel (correctness, security, compaction)
@@ -110,6 +111,8 @@ bd update <lifecycle-id> --notes="
 - [ ] Wave 1: GATE PASSED
 - [ ] Wave 1: Human review APPROVED (blocking)
 [repeat for Wave 2+ — same steps but human review is async/non-blocking]
+- [ ] Sprint close: UBS full project scan
+- [ ] Sprint close: test-coverage verification
 - [ ] Sprint close: docs-gen-int
 - [ ] Sprint close: docs-gen-ext
 - [ ] Sprint close: fresh-eyes
@@ -165,8 +168,11 @@ Format:
 - Pending: <bead-ids>
 - Failed (needs rework): <bead-ids>
 
+## Deep Review Results
+- Wave 1: 3 rounds (explore, cross, explore), 5 issues fixed, converged
+
 ## Review Flywheel Results
-- Wave 1: correctness(0), security(1 P1 fixed), compaction(2 deferred), ux(N/A)
+- Wave 1: UBS(clean), correctness(0), security(1 P1 fixed), compaction(2 deferred), ux(N/A)
 
 ## Key Decisions
 - <any autonomous decisions made, with rationale>
@@ -184,8 +190,19 @@ For each bead, verify:
 - [ ] **Context** — does the description explain WHY this exists, not just WHAT to do?
 - [ ] **Acceptance criteria** — are they concrete and verifiable (not "it works")?
 - [ ] **File pointers** — are relevant files, endpoints, or components named?
+- [ ] **Existing code to reuse** — has the bead identified existing components,
+  utilities, or patterns that the worker should use rather than reinvent? If not,
+  grep/glob for relevant concepts and add pointers: "Use existing InviteDialog
+  in src/components/members/InviteDialog.tsx as the base — extend with role prop."
+  This is CRITICAL for brownfield codebases — without explicit reuse pointers,
+  workers will build from scratch.
+- [ ] **UX baseline** (frontend beads) — does the bead specify which existing UX
+  patterns to follow? (e.g., "Match the member list pattern in MemberTable.tsx —
+  same row height, same action menu position, same empty state.") Without this,
+  workers invent their own patterns and create visual inconsistency.
+- [ ] **Scope boundary** — does the bead explicitly state what's OUT of scope?
+  For frontend beads: "Do NOT modify layout/spacing/styling of existing components."
 - [ ] **Dependencies** — are blocked/blocking relationships correct?
-- [ ] **Scope** — is it clear what's in scope and what's not?
 - [ ] **TDD pairing** — if this is an impl bead with testable criteria, does a
   companion test bead exist that blocks it? If not, create one now.
 
@@ -325,6 +342,34 @@ worker must remove skip decorators and fix the test, or implement the code
 that makes the test pass. Skipping a test to make the suite "green" is
 the test equivalent of a stub.
 
+**Step 0c — UBS security scan (mechanical):**
+
+UBS (Ultimate Bug Scanner) catches security anti-patterns, null safety,
+async/await bugs, memory leaks, and hardcoded secrets mechanically — faster
+and more reliably than reasoning-based review for pattern-level issues.
+
+```bash
+# Run UBS on all wave files — strict mode, gate-blocking
+ubs $WAVE_FILES --fail-on-warning --format=text
+```
+
+**Exit 0 = PASS.** Proceed to Step 1.
+
+**Exit 1 = FAIL.** UBS found critical issues or warnings. Parse the output:
+- Each finding has `file:line:col` location and a `💡` fix suggestion
+- Identify which ticket introduced each finding
+- Send the worker back with the exact finding and fix suggestion
+- Worker fixes, re-runs `ubs <their-files> --fail-on-warning` → exit 0
+- Re-run Step 0c on full wave files after all fixes
+
+**Exit 2 = environment error.** Run `ubs doctor --fix` and retry. If UBS
+is not installed, skip this step and log it — the SECURITY lens in Step 3
+provides the reasoning fallback, but file a note to install UBS.
+
+UBS handles the mechanical layer (patterns, AST analysis). The SECURITY
+lens bug hunter in Step 3 handles the reasoning layer (architecture, trust
+boundaries, auth flows). Both are needed — they catch different things.
+
 ### Step 1 — All tickets individually QA-passed
 
 Every ticket in the wave must have a QA PASS verdict. If any ticket is still
@@ -364,7 +409,11 @@ Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-correctness-wN", tea
   → "Lens: CORRECTNESS. Wave N. Scope: <files>. <context on what wave built>."
 
 Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-security-wN", team_name=<team>)
-  → "Lens: SECURITY. Wave N. Scope: <files>. <context on what wave built>."
+  → "Lens: SECURITY. Wave N. Scope: <files>. <context on what wave built>.
+     NOTE: UBS already ran in Step 0c and caught pattern-level security issues
+     (XSS, eval, hardcoded secrets, injection patterns). Focus on architectural
+     security: trust boundaries, auth flow completeness, access control gaps,
+     data exposure through design, privilege escalation via business logic."
 
 Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-compaction-wN", team_name=<team>)
   → "Lens: COMPACTION. Wave N. Scope: <files>. <context on what wave built>."
@@ -392,8 +441,13 @@ Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-ux-wN", team_name=<t
 1. Triage by priority: P0 must fix now, P1 should fix now, P2 can defer to next wave
 2. Assign P0 + P1 fixes to available workers (priority override)
 3. Bug fixes go through normal QA verification
-4. Re-run integration quality gates after fixes
-5. All review agents shut down after reporting
+4. Re-run UBS on changed files (`ubs <fixed-files> --fail-on-warning`)
+5. Re-run integration quality gates after fixes
+6. **Convergence check:** if P0 or P1 fixes were applied, re-run the review
+   flywheel (spawn fresh lens agents). This catches issues introduced by the
+   fixes themselves. Cap at 3 total review rounds — if still finding P0/P1
+   after 3 rounds, create beads and proceed (diminishing returns).
+7. All review agents shut down after each round
 
 **If all clean:** review agents report clean and shut down. Proceed.
 
@@ -423,8 +477,10 @@ Log the wave completion:
 ```
 bd comments add <epic-id> "Wave N complete:
   - Stub scan: CLEAN (or: X stubs found and fixed before gate)
+  - UBS scan: CLEAN (or: X findings fixed before gate)
   - Tickets: X passed, 0 failed
   - Quality gates: PASS
+  - Deep review: N rounds (explore/cross), M issues fixed (or: not triggered)
   - Review flywheel: correctness (X issues), security (X), compaction (X), ux (X or N/A)
   - Fixes applied: X P0, X P1, X P2 deferred
   - Smoke test: PASS
@@ -514,9 +570,16 @@ first time. You are looking for:
 4. Copy-paste artifacts: wrong variable names, stale comments from copied code
 5. Contract violations: does your code match what callers expect?
 6. Dead code: imports you added but never used, variables assigned but never read
+7. Scope violations: did you change ANYTHING outside your ticket's scope?
+   Layout, spacing, styling, naming of existing components you touched?
+   If yes — revert those changes before reporting.
+8. Reinvented wheels: did you build something that already exists in the
+   codebase? Grep for the concept. If you find existing code, refactor to
+   use it and delete your reimplementation.
 
 Fix everything you find. Then do another round — re-read again. Keep going
-until a round finds ZERO issues. Then run the stub scan. Then report completion.
+until a round finds ZERO issues. Then run the stub scan and UBS scan. Then
+report completion.
 
 Typical cadence:
 - Simple beads: 1-2 rounds to reach clean
@@ -565,14 +628,22 @@ tests with these patterns.
 ```
 Ticket: <bead-id>
 Files changed: <list>
+Reuse check: searched <what dirs/patterns>, found <what existing code>, reused <what> / built new because <why>
+Scope check: only files required by this ticket modified — YES
 Self-review: DONE — <N issues found and fixed, or "clean">
 Test output: <paste showing ALL PASS — green phase>
 Test files modified: NO
 Stub scan: CLEAN (grep output showing zero matches)
+UBS scan: CLEAN (exit 0) or N/A (ubs not installed)
 Acceptance criteria:
   - [x] Criteria 1 — <evidence>
   - [x] Criteria 2 — <evidence>
 ```
+
+**Reject if reuse check is missing or vague.** "I checked the codebase" is not
+evidence. "I grepped for 'member' and 'invite', checked src/components/members/
+and src/lib/hooks/, found InviteDialog in src/components/members/InviteDialog.tsx,
+extended it with a new `role` prop" is evidence.
 
 Workers MUST run the stub scan on their own files before reporting completion:
 ```bash
@@ -584,17 +655,34 @@ grep -n -e 'TODO' -e 'FIXME' -e 'HACK' -e 'XXX' -e 'placeholder' \
 If any matches, they must fix before reporting done. Do NOT accept completion
 evidence that omits the stub scan or shows matches.
 
+Workers MUST also run UBS on their changed files (if installed):
+```bash
+ubs <their changed files> --fail-on-warning
+```
+Exit 0 = clean. Exit 1 = fix findings before reporting. Exit 2 or command
+not found = report "UBS scan: N/A" and proceed (the wave gate catches it).
+
 ### For frontend beads:
 ```
 Ticket: <bead-id>
 Files changed: <list>
-Route file: <path to page.tsx>
+Route traced: URL → route file → components (full path verified)
+Reuse check: searched <what>, reused <existing components/patterns>
+Scope check: only files required by this ticket modified — YES
+  UX changes outside scope: NONE (or list and justify)
 Self-review: DONE — <N issues found and fixed, or "clean">
 Build output: npm run build — PASS/FAIL
+UBS scan: CLEAN (exit 0) or N/A (ubs not installed)
 Old components removed: YES/NO (if ticket says "replace X")
 Acceptance criteria:
   - [x] Criteria 1 — <evidence>
 ```
+
+**Frontend scope is especially critical.** Workers silently "improving" UX —
+adjusting spacing, changing layouts, tweaking colors — on components they touch
+causes rework for the user who already designed those patterns. If the bead
+says "add a delete button to the member row," the diff should contain a delete
+button and NOTHING ELSE about the member row's layout, spacing, or styling.
 
 **If a worker sends "done" without this structure, reject it:**
 "Completion rejected — provide structured evidence per the protocol."
@@ -642,6 +730,37 @@ Assign via `SendMessage` with:
 - Files to touch, quality gate commands
 - Whether this is a test bead (red phase) or impl bead (green phase)
 - "When done, message me with structured completion evidence"
+- **The brownfield mandate** (include verbatim in EVERY assignment):
+
+```
+BROWNFIELD MANDATE: This is a maturing codebase — not a blank slate. Your
+default is to FIND and REUSE existing code, not to BUILD new.
+
+Before writing ANY new component, utility, hook, or pattern:
+1. Grep for the concept (e.g., "member", "vault", "invite")
+2. Glob for likely file patterns (e.g., **/member*.tsx, **/invite*)
+3. Read the relevant directory listings
+
+You MUST name what you searched in your completion evidence. "I checked
+[specific files/dirs] and confirmed nothing existing solves this." If you
+cannot name what you checked, you did not check.
+
+If you discover existing code mid-flight: STOP. Discard what you wrote.
+Use the existing implementation. Sunk cost is not a reason to duplicate.
+
+Your diff must contain ONLY changes required by this ticket:
+- Do NOT "improve" adjacent code while you're in there
+- Do NOT change layout, spacing, or visual design unless that IS the ticket
+- Do NOT refactor files you're editing unless asked
+- Do NOT add props, variants, or flexibility beyond what's needed now
+- If something nearby looks wrong, mention it to the Director — do NOT
+  fix it silently
+
+For UI work: trace the rendering path BEFORE editing:
+  URL → route file → component → sub-components → shared utilities
+Do NOT guess which file renders a given URL. Verify.
+```
+
 - **The anti-stub mandate** (include verbatim in EVERY assignment):
 
 ```
@@ -698,34 +817,139 @@ Workers MUST NOT spawn sub-agents to "verify" their own work. All verification
 goes through the QA agent via you. If a worker spawns a sub-agent for
 self-verification, reject the completion and re-route to QA.
 
+## Mid-Wave Deep Review
+
+Cross-agent review catches integration bugs that self-review cannot. When Agent A
+implements a function and Agent B calls it, Agent A's self-review will never catch
+Agent B passing arguments in the wrong order. Deep review surfaces these issues.
+
+### When to trigger
+
+- Every 30-60 minutes during active wave implementation, OR
+- When a worker finishes a bead and no more beads are ready to assign
+- After a natural milestone (e.g., all beads in an epic are done)
+
+**Do NOT stop all workers to review.** Pick 1-2 idle/just-finished workers and
+send them review work while others keep implementing. Workers doing review can
+be interrupted if a priority bead unblocks.
+
+### The two prompts (alternate them)
+
+Deep review uses two complementary prompts that activate different search
+behaviors. Alternate between them — repeating either alone gives worse coverage.
+
+**Prompt A — Random Exploration (curiosity-driven):**
+
+```
+DEEP REVIEW: RANDOM EXPLORATION
+
+Randomly explore the code files in this project. Choose code files to deeply
+investigate — trace their functionality and execution flows through the files
+they import and the files that import them.
+
+Once you understand the purpose of the code in the larger context of the
+workflows, do a super careful, methodical, and critical check with "fresh
+eyes" to find any obvious bugs, problems, errors, issues, silly mistakes,
+etc. and then systematically and meticulously correct them.
+
+Scope: <project-dir>
+UBS has already run clean on this project. Focus on logic-level issues that
+pattern matching cannot catch.
+
+Comply with ALL rules in AGENTS.md and CLAUDE.md. Use extended thinking.
+```
+
+*Psychology:* Builds a mental model of purpose and flow BEFORE criticizing.
+A bug hunt without workflow understanding degrades into linting. The "randomly
+explore" framing breaks the locality trap — directed reviews focus on files
+that seem important (which got the most attention already). Surviving bugs
+live in utility modules, error handling paths, config parsing, edge cases.
+
+**Prompt B — Cross-Agent Review (adversarial):**
+
+```
+DEEP REVIEW: CROSS-AGENT
+
+Review the code written by your fellow agents. Check for issues, bugs,
+errors, problems, inefficiencies, security problems, reliability issues.
+Carefully diagnose their underlying root causes using first-principle
+analysis and then fix or revise them if necessary.
+
+Don't restrict yourself to the latest commits — cast a wider net and go
+super deep! Focus especially on integration seams where different agents'
+changes meet: shared imports, API contracts, database schema vs query code,
+protocol definitions vs implementations.
+
+Scope: <project-dir>
+UBS has already run clean on this project. Focus on logic-level issues that
+pattern matching cannot catch.
+
+Comply with ALL rules in AGENTS.md and CLAUDE.md. Use extended thinking.
+```
+
+*Psychology:* Forces the swarm to stop treating code ownership as sacred.
+Defects live at boundaries between agents' changes. The "don't restrict
+to latest commits" instruction prevents shallow PR-style skimming and pushes
+into older surrounding code where root causes live.
+
+### Process
+
+1. **Run UBS first:** `ubs . --fail-on-warning` — fix all mechanical findings
+   before agents hunt for subtler issues
+2. Send idle worker **Prompt A** (random exploration)
+3. Next idle worker gets **Prompt B** (cross-agent review)
+4. Each worker: finds issues → fixes directly → reports summary to Director
+5. If fixes were made: re-run UBS on changed files
+6. Alternate prompts on subsequent rounds
+7. **Converge when 2 consecutive rounds both come back clean** (no changes made)
+8. If agents keep finding bugs after 4+ rounds: stop deep review, create
+   specific fix beads, and address them as normal bead work
+
+### Tracking
+
+Log deep review rounds in the wave summary:
+```
+Deep review: 3 rounds (explore, cross, explore), 5 issues fixed, converged
+```
+
 ## Role Switching
 
-When a worker finishes all their impl tickets:
+When a worker finishes a bead and more work exists:
 
 1. **More impl work?** → assign unblocked tickets
-2. **Testing** → "Run `/hs-sw-test-coverage` on dirs you modified. Create beads for gaps. Implement tests."
-3. **Fresh Eyes on code** → "Run `/hs-sw-fresh-eyes` on code by other agents." (if others still implementing)
-4. **Fresh Eyes on beads** → "Run `/hs-sw-fresh-eyes --beads` to audit remaining open tickets for quality."
-5. **Docs** → "Run `/hs-sw-docs-gen-int` for internal docs on sprint changes."
-6. **Marketing** → "Run `/hs-mkt-capture` for interesting patterns."
+2. **Deep review** → send alternating explore/cross-agent prompt (see Mid-Wave Deep Review above) — highest value when other agents are still implementing
+3. **Testing** → "Run `/hs-sw-test-coverage` on dirs you modified. Create beads for gaps. Implement tests."
+4. **Fresh Eyes on code** → "Run `/hs-sw-fresh-eyes` on code by other agents." (if others still implementing)
+5. **Fresh Eyes on beads** → "Run `/hs-sw-fresh-eyes --beads` to audit remaining open tickets for quality."
+6. **Docs** → "Run `/hs-sw-docs-gen-int` for internal docs on sprint changes."
+7. **Marketing** → "Run `/hs-mkt-capture` for interesting patterns."
 
 ## Sprint Completion
 
 1. All beads labeled `qa-passed` (NOT `closed` — humans close after review)
 2. Full quality gates (backend: ruff + pytest, frontend: lint + tsc + build)
-3. **Documentation generation** — assign to an idle worker:
+3. **UBS full project scan** — `ubs . --fail-on-warning`. Per-wave scans
+   caught file-level issues; this catches cross-file patterns across the
+   full codebase. Fix any findings before proceeding.
+4. **Test coverage verification** (mandatory) — assign to a worker:
+   - `/hs-sw-test-coverage <project-dir>` — verify full unit test coverage
+     (no mocks/fakes), complete e2e integration tests with detailed logging,
+     CLI tests for every command
+   - If gaps found: worker creates beads, implements the tests, QA verifies
+   - This is NOT optional — every sprint must end with verified test coverage
+5. **Documentation generation** — assign to an idle worker:
    - `/hs-sw-docs-gen-int <feature-dir>` → writes internal docs (architecture, api, cli) alongside PLAN.md
    - `/hs-sw-docs-gen-ext <feature-dir>` → writes external docs to `docs/site/`
    - Both skills auto-create directories and write files — no manual setup needed
-4. **Fresh-eyes sweep** — assign to a DIFFERENT worker (not the one who wrote docs):
+6. **Fresh-eyes sweep** — assign to a DIFFERENT worker (not the one who wrote docs):
    - `/hs-sw-fresh-eyes <feature-dir>` — reviews the entire feature directory:
      code, PLAN, docs, beads. Auto-detects artifact types and applies matching checklists.
    - Fixes code bugs and doc defects directly. Reports plan/pitch/bead issues.
-5. `/hs-sw-land-the-plane` to commit + push
-6. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
-7. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
-8. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, known gaps
-9. `shutdown_request` all workers + QA → shutdown self
+7. `/hs-sw-land-the-plane` to commit + push
+8. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
+9. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
+10. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, known gaps
+11. `shutdown_request` all workers + QA → shutdown self
 
 ## Bead Lifecycle (agents)
 

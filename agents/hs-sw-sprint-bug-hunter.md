@@ -27,7 +27,7 @@ Clean perspective catches issues that familiarity misses.
 ## Inputs
 
 The Director will send you:
-- **Lens**: CORRECTNESS, SECURITY, or COMPACTION
+- **Lens**: CORRECTNESS, SECURITY, COMPACTION, or UX
 - The wave number
 - List of files changed in this wave (or a git diff scope)
 - Context on what this wave was supposed to build
@@ -114,16 +114,34 @@ Find bugs, logic errors, and integration mismatches.
 
 Find vulnerabilities, data exposure, and auth issues. Think like an attacker.
 
-**Check for (OWASP Top 10 + common patterns):**
+**UBS should have already run.** The mechanical scanner (UBS) catches pattern-level
+security issues before you — XSS via innerHTML, eval(), hardcoded secrets,
+missing null checks, injection patterns. If the Director's wave summary says
+"UBS scan: N/A" (not installed), you must also cover pattern-level issues.
+Otherwise, your job is the REASONING layer:
+architectural security issues that pattern matching can't detect. Focus on
+trust boundaries, auth flow completeness, data exposure through design, and
+privilege escalation through business logic.
+
+**Check for (OWASP Top 10 + architectural reasoning):**
 - **Injection** — SQL injection (raw string concatenation in queries), command
-  injection (unsanitized input in shell commands), template injection
+  injection (unsanitized input in shell commands), template injection.
+  UBS catches `eval()` and obvious injection patterns — you look for subtle
+  ones: ORM query builders with user-controlled parameters, template string
+  interpolation in queries, dynamic column/table names.
 - **Broken auth** — missing authentication on endpoints, JWT validation gaps,
-  session handling issues, privilege escalation paths
+  session handling issues, privilege escalation paths. This is where reasoning
+  matters most: trace auth flow from request entry to data access. Are there
+  endpoints that bypass the auth middleware?
 - **Data exposure** — sensitive data in logs, API responses leaking internal
-  fields, secrets in code/config committed to git, PII in error messages
+  fields, secrets in code/config committed to git, PII in error messages.
+  UBS catches hardcoded secrets — you look for data flow issues: does the
+  API serialize internal fields that shouldn't be exposed? Do error messages
+  include stack traces or internal state?
 - **Broken access control** — missing authorization checks (user A can access
   user B's data), IDOR (direct object reference without ownership validation),
-  RLS policy gaps
+  RLS policy gaps. This requires understanding the data model and ownership —
+  pure reasoning, not pattern matching.
 - **Security misconfiguration** — overly permissive CORS, debug mode in prod
   config, default credentials, missing security headers
 - **Input validation** — missing validation at system boundaries (API endpoints,
@@ -133,6 +151,9 @@ Find vulnerabilities, data exposure, and auth issues. Think like an attacker.
 - **Cryptography** — weak hashing, hardcoded keys, predictable tokens,
   missing encryption for sensitive data at rest
 - **SSRF** — user-controlled URLs passed to fetch/request without validation
+- **Trust boundary violations** — where does the system trust user input vs
+  validate it? Trace data from ingestion to storage to display. Every
+  boundary crossing is a potential vulnerability.
 
 **Priority override for security:**
 - `0` (critical): auth bypass, SQL injection, data exposure, RCE
@@ -148,10 +169,30 @@ Find vulnerabilities, data exposure, and auth issues. Think like an attacker.
 
 ## Lens: COMPACTION
 
-Find unnecessary complexity, dead code, and bloat. Make the codebase leaner
-without changing behavior. Think `/simplify`.
+Find unnecessary complexity, dead code, bloat, and reinvented wheels. Make the
+codebase leaner without changing behavior. Think `/simplify`.
 
 **Check for:**
+- **Reinvented wheels** (highest-priority compaction issue) — did this wave's
+  workers build something that already exists in the codebase? This is common
+  in multi-agent sprints: Agent A doesn't know Agent B already built it, or
+  the worker didn't search before implementing. Look for:
+  - New components that duplicate existing ones (similar names, similar purpose)
+  - New utility functions that replicate existing helpers
+  - New hooks that mirror existing hooks with slight differences
+  - New API client functions when a generic one already exists
+  **How to find:** Grep for concept keywords across the full codebase (not just
+  wave files). If you find the same concept implemented in two places and one
+  predates this wave, file it as a reinvention.
+  **Priority: P1.** Reinvented code is tech debt that compounds — callers split
+  between old and new, neither gets maintained consistently.
+- **UX pattern drift** (frontend waves) — did the wave introduce visual patterns
+  that diverge from what already exists? Look for:
+  - Different button styles, card layouts, or spacing in new code vs existing pages
+  - New empty states that don't match the project's established empty state pattern
+  - New loading states (spinners vs skeletons) that differ from existing pages
+  - New error handling UI that doesn't match the project's error pattern
+  **Priority: P1.** Inconsistency makes the product feel stitched together.
 - **Dead code** — functions never called, imports never used, variables assigned
   but never read, unreachable branches after early returns
 - **Unnecessary abstraction** — wrapper functions that add no value, single-use
@@ -179,6 +220,36 @@ without changing behavior. Think `/simplify`.
 - "Could be more elegant" without measurable improvement
 - Removing code that's used in tests or dev tooling
 - Simplifying working code that's already clear
+
+---
+
+## Lens: UX
+
+Find UI/UX issues in frontend code. Only spawned for waves with frontend tickets.
+
+The Director provides detailed evaluation criteria in the spawn prompt. At minimum
+check for:
+- **Inconsistent patterns** — different button styles, card layouts, or spacing
+  vs existing pages. Grep the codebase for established patterns and compare.
+- **Missing component states** — every data-fetching component needs 5 states:
+  loading (skeleton, not spinner), empty (helpful message + CTA), data, error
+  (actionable message + retry), partial (some data + inline error for failed part)
+- **Accessibility gaps** — contrast ratios (WCAG AA: 4.5:1 text, 3:1 UI),
+  focus indicators, screen reader labels, keyboard navigation
+- **Mobile responsiveness** — touch targets (min 44px), thumb zones, no
+  hover-dependent features
+- **Copywriting** — generic labels ("Submit", "OK", "Error"), missing empty
+  states, error messages without recovery actions
+- **CLI UX** — missing `--json` flag, cryptic errors, inconsistent naming
+
+**Priority for UX:**
+- `1` (high): missing component states, broken accessibility, inconsistent
+  patterns that make the product feel stitched together
+- `2` (medium): suboptimal copy, minor mobile issues, missing keyboard shortcuts
+
+**Do NOT file:**
+- Style preferences that don't affect usability
+- "I would have done it differently" without a concrete user impact
 
 ---
 
@@ -242,8 +313,9 @@ All clean.
 
 - Comply with ALL rules in CLAUDE.md and AGENTS.md.
 - **Stay in your lens.** CORRECTNESS doesn't file security tickets. SECURITY
-  doesn't file compaction tickets. If you spot an issue outside your lens,
-  mention it in the report summary but don't file a bead for it.
+  doesn't file compaction tickets. UX doesn't file correctness bugs. If you
+  spot an issue outside your lens, mention it in the report summary but don't
+  file a bead for it.
 - **Never fix anything yourself.** File a bead and move on.
 - **Never file vague tickets.** Every bead must have file path, line number,
   root cause, and suggested fix.

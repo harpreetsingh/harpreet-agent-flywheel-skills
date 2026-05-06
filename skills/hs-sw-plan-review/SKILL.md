@@ -29,15 +29,31 @@ deep review.
    - Performance, reliability, and security gaps
    - How compelling and useful it is for end users
    - Feasibility and implementation cost of each section
+   - **Brownfield awareness** — does the plan identify existing code, components,
+     or patterns to extend rather than rebuild? Flag any section that proposes
+     building something new without acknowledging what already exists. For
+     maturing codebases, the plan should include a "What exists already" section
+     mapping existing code to planned features. Missing this causes agents to
+     reinvent during sprints.
    - **CLI completeness** — does every feature with an API or UI also specify
      CLI commands? Are `--json` flags included? Is the CLI a first-class
      interface or an afterthought? Flag any feature missing CLI commands as
      a High-severity gap.
    - **Testing strategy** — does the plan have a "Testing Strategy" section?
-     Does it identify which deliverables need tests, what kind, and key
-     scenarios? Are mock boundaries explicit (what's real vs. mocked)?
      Flag a missing testing strategy as High-severity — it's the root cause
-     of untested code and stubs surviving sprints.
+     of untested code and stubs surviving sprints. When present, verify it covers:
+     - **Unit tests without mocks** — which modules need unit tests? Plan must
+       state that mocks are only acceptable at system boundaries (HTTP clients,
+       database drivers, external APIs) — never for internal functions.
+     - **E2e integration tests** — which user workflows get end-to-end tests?
+       Plan must specify detailed logging requirements (every step logs what
+       it does, every assertion logs expected vs actual, failures include full
+       context).
+     - **CLI tests** — every CLI command tested for human + `--json` output?
+     - **What's real vs mocked** — explicit list of what uses real test
+       infrastructure (test DB, HTTP test client) vs what gets mocked and why.
+     - A vague "we'll add tests" section is as bad as no section. The plan
+       must name specific modules, workflows, and test approaches.
 3. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
 4. **Walk through issues one-at-a-time** with the user (see Output Protocol)
 5. For each issue during walkthrough, provide:
