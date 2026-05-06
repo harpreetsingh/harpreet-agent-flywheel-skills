@@ -106,7 +106,7 @@ bd update <lifecycle-id> --notes="
 - [ ] Wave 1: UBS scan CLEAN (Step 0c)
 - [ ] Wave 1: All tickets QA-passed
 - [ ] Wave 1: Integration quality gates PASS
-- [ ] Wave 1: Review flywheel (correctness, security, compaction)
+- [ ] Wave 1: Review flywheel (correctness, security, compaction, ux if frontend)
 - [ ] Wave 1: Smoke test PASS
 - [ ] Wave 1: GATE PASSED
 - [ ] Wave 1: Human review APPROVED (blocking)
@@ -116,6 +116,7 @@ bd update <lifecycle-id> --notes="
 - [ ] Sprint close: docs-gen-int
 - [ ] Sprint close: docs-gen-ext
 - [ ] Sprint close: fresh-eyes
+- [ ] Sprint close: ux-polish (if frontend work)
 - [ ] Sprint close: land-the-plane
 - [ ] Sprint close: summary to user
 "
@@ -945,11 +946,15 @@ When a worker finishes a bead and more work exists:
    - `/hs-sw-fresh-eyes <feature-dir>` — reviews the entire feature directory:
      code, PLAN, docs, beads. Auto-detects artifact types and applies matching checklists.
    - Fixes code bugs and doc defects directly. Reports plan/pitch/bead issues.
-7. `/hs-sw-land-the-plane` to commit + push
-8. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
-9. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
-10. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, known gaps
-11. `shutdown_request` all workers + QA → shutdown self
+7. **UX polish** (if sprint includes frontend work) — assign to a worker:
+   - `/hs-sw-ux-polish <frontend-dir>` — final UX sweep with separate desktop
+     and mobile passes, 5-state matrix check, Stripe-level quality bar.
+   - Skip if no frontend beads existed in this sprint.
+8. `/hs-sw-land-the-plane` to commit + push
+9. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
+10. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
+11. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, UX polish findings, known gaps
+12. `shutdown_request` all workers + QA → shutdown self
 
 ## Bead Lifecycle (agents)
 

@@ -110,6 +110,7 @@ Follow the mode instructions above. For each issue:
 ubs <files-you-changed> --fail-on-warning
 ```
 
+If UBS was not available in Step 0, skip this step too.
 Ensure your fixes don't introduce new mechanical issues.
 
 ## Report

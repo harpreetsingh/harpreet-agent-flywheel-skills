@@ -268,6 +268,7 @@ Title format by lens:
 - CORRECTNESS: `"Bug: <description>"`
 - SECURITY: `"Security: <description>"`
 - COMPACTION: `"Cleanup: <description>"`
+- UX: `"UX: <description>"`
 
 Include in every description:
 - Exact file path and line number

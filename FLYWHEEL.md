@@ -258,7 +258,7 @@ Beads (bd):
 | **Director** | Sprint coordinator. Creates team, assigns work, runs wave gates, manages lifecycle bead. Never implements. | All | Opus-tier. Spawns workers + QA. Writes checkpoints to `sprint-state.md`. |
 | **QA** | Independent verifier. Checks every ticket against acceptance criteria. Never implements. | Read, Grep, Glob, Bash, SendMessage | Permanent teammate. Reports PASS/FAIL. Strict — 80% of criteria = FAIL. |
 | **Bug Hunter** | Ephemeral wave-gate reviewer. One lens per instance (correctness, security, compaction, UX). | Read, Grep, Glob, Bash, SendMessage | Spawned fresh per wave. Files beads for issues. Shuts down after reporting. |
-| **Peer Reviewer** | Mid-wave deep reviewer. Two modes: EXPLORE (random exploration) and CROSS-REVIEW (boundary-focused). | Read, Edit, Grep, Glob, Bash | Sent to idle workers during implementation. Alternating modes converge on 2 clean rounds. |
+| **Peer Reviewer** | Mid-wave deep reviewer. Two modes: EXPLORE (random exploration) and CROSS-REVIEW (boundary-focused). | Read, Edit, Grep, Glob, Bash | Director sends alternating review prompts to idle workers mid-wave. Converges on 2 consecutive clean rounds. |
 | **Workers** | General-purpose implementation agents. Write code, tests, docs. | All | Sonnet or Opus tier. Different worker writes tests vs implementation (TDD). Cap: 5. |
 
 ---
