@@ -383,7 +383,7 @@ tickets may pass in isolation but break when combined.
 
 ```bash
 # Backend
-cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest -v
+cd backend && uv run ruff check . && uv run ruff format --check . && uvx ty check && uv run pytest -v
 
 # Frontend (if frontend tickets exist in this wave)
 cd frontend && npm run lint && npx tsc --noEmit && npm run build
@@ -731,6 +731,16 @@ Assign via `SendMessage` with:
 - Files to touch, quality gate commands
 - Whether this is a test bead (red phase) or impl bead (green phase)
 - "When done, message me with structured completion evidence"
+- **The CM context check** (include verbatim in EVERY assignment):
+
+```
+CONTEXT CHECK: Before writing any code, run:
+  cm context "<bead title>" --json
+Read the output — it contains rules, anti-patterns, and past solutions from
+prior sessions. If historySnippets show a prior implementation of this concept,
+read and reuse it. Do NOT skip this step.
+```
+
 - **The brownfield mandate** (include verbatim in EVERY assignment):
 
 ```
