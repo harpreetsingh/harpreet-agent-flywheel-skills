@@ -127,6 +127,20 @@ Director (Opus) — coordinator only, never implements
 - **Also write to `<feature_dir>/sprint-plan.md`** — this is the persistent copy
   that lives alongside PLAN.md and pitch.md. Include the `feature_dir` path in
   the plan so the Director knows where to write checkpoints.
+- **Generate `tmp/sprint-status.sh`** — sprint status line script for Claude Code:
+  - Get the project root absolute path via `pwd`
+  - Hardcode all ticket IDs and wave-to-ticket mapping (known from Step 4)
+  - Script queries `bd show <all-ids> --json` in one call, formats output as:
+    `Sprint: ■■▣□□ 2/5 done · W1:✓ W2:◐ W3:○`
+  - Use symbols: `■` closed, `▣` in_progress, `□` open; `✓` wave done, `◐` wave active, `○` wave pending
+  - Falls back to `"Sprint: loading..."` if bd or python fails
+  - See `docs/features/sprint-status-line/statusupdate.md` for full script template
+  - Make executable: `chmod +x tmp/sprint-status.sh`
+  - Verify it runs: `bash tmp/sprint-status.sh`
+- **Configure `.claude/settings.json`** with the status line:
+  - Read existing `.claude/settings.json` (or start from `{}` if missing)
+  - Merge in: `"statusLine": {"type": "command", "command": "bash <abs-path>/tmp/sprint-status.sh"}`
+  - Write back — preserve all other existing settings
 - Present ASCII diagram + topology + cost summary in conversation
 - Tell user: "Review and adjust, or run `/hs-sw-sprint-go` to launch"
 
