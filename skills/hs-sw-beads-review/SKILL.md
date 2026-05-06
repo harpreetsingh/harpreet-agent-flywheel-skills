@@ -54,12 +54,63 @@ be changed to make the system work better for users?
    - Is the description self-contained enough for an agent with no prior context?
    - Could beads be merged (overlapping scope), split (too large), reordered
      (wrong priority), or removed (unnecessary)?
-5. **Apply revisions** using `bd update` and `bd dep add`
-7. **Summarize** all changes made and why — organized by:
-   - TDD gaps found and fixed
-   - Domain balance issues
-   - CLI coverage gaps found and fixed
-   - Structural changes (merges, splits, reorders)
+6. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+7. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+8. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
+   after user approves each change
+9. **Final status table** after all issues are walked
+
+## Output Protocol
+
+All review output follows a three-phase structure. Do NOT dump a wall of findings.
+
+### Phase 1 — Issues Table
+
+After completing all checks (steps 1-5), present ONLY a compact table. No elaboration,
+no `bd update` commands, no paragraphs of analysis. Just the table:
+
+```
+| #  | Handle           | Description                                      | Crit | Status |
+|----|------------------|--------------------------------------------------|------|--------|
+| 1  | missing-test-bead | Auth impl bead has no companion test bead        | High | ✗      |
+| 2  | vague-ac-signup  | Signup bead AC says "it works" — not verifiable   | Med  | ✗      |
+```
+
+Column definitions:
+- **#**: Sequential number
+- **Handle**: 2-5 word slug that makes the issue easy to reference in conversation
+  (e.g., `missing-test-bead`, `orphan-infra-bead`, `oversized-auth`)
+- **Description**: 1-2 sentences, no more
+- **Crit**: `High` / `Med` / `Low`
+- **Status**: `✗` (open) or `✓` (addressed)
+
+Sort by criticality (High first), then by dependency order.
+
+After presenting the table, say:
+> "Ready to walk through each issue. Say **go** to start from #1, or pick a number."
+
+### Phase 2 — One-at-a-Time Walkthrough
+
+For each issue (in order, or as the user picks):
+1. State the handle and issue number
+2. Show the full analysis: what's wrong, why it matters, proposed fix
+3. Show the exact `bd update` / `bd dep add` commands you'll run
+4. Wait for user approval before executing
+5. Once resolved or deferred, mark status `✓` or note deferral
+6. Move to the next issue
+
+Do NOT present multiple issues at once. One issue per response.
+
+### Phase 3 — Final Status Table
+
+After all issues have been walked, present the updated table with final statuses.
+Organize a summary by category:
+- TDD gaps found and fixed
+- Domain balance issues
+- CLI coverage gaps found and fixed
+- Structural changes (merges, splits, reorders)
+
+If any remain `✗`, call them out explicitly and ask if the user wants another pass.
 
 ## Rules
 

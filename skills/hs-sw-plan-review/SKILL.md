@@ -38,19 +38,66 @@ deep review.
      scenarios? Are mock boundaries explicit (what's real vs. mocked)?
      Flag a missing testing strategy as High-severity — it's the root cause
      of untested code and stubs surviving sprints.
-3. For EACH proposed change, provide:
-   - **Severity**: High (architectural) / Medium (feature-level) / Low (polish)
+3. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+4. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+5. For each issue during walkthrough, provide:
    - **Analysis**: What's wrong or suboptimal
    - **Rationale**: Why the change makes it better — with specifics, not hand-waving
    - **Diff**: git-diff style change relative to the current plan
-4. Present ALL proposals and WAIT for the user to approve before editing the file.
-   The user may accept all, accept some, or ask for another round.
+6. Do NOT apply changes. Wait for user approval on each issue.
+7. **Final status table** after all issues are walked
+
+## Output Protocol
+
+All review output follows a three-phase structure. Do NOT dump a wall of findings.
+
+### Phase 1 — Issues Table
+
+After completing your evaluation, present ONLY a compact table. No analysis, no diffs,
+no paragraphs of rationale. Just the table:
+
+```
+| #  | Handle           | Description                                      | Crit | Status |
+|----|------------------|--------------------------------------------------|------|--------|
+| 1  | missing-test-strat | No testing strategy section — root cause of stubs | High | ✗      |
+| 2  | vague-ac         | Acceptance criteria in D3 are not verifiable       | Med  | ✗      |
+```
+
+Column definitions:
+- **#**: Sequential number
+- **Handle**: 2-5 word slug that makes the issue easy to reference in conversation
+  (e.g., `missing-test-strat`, `scope-creep-d4`, `no-cli-surface`)
+- **Description**: 1-2 sentences, no more
+- **Crit**: `High` / `Med` / `Low`
+- **Status**: `✗` (open) or `✓` (addressed)
+
+Sort by criticality (High first), then by plan section order.
+
+After presenting the table, say:
+> "Ready to walk through each issue. Say **go** to start from #1, or pick a number."
+
+### Phase 2 — One-at-a-Time Walkthrough
+
+For each issue (in order, or as the user picks):
+1. State the handle and issue number
+2. Show the full analysis, rationale, and proposed diff
+3. Wait for the user to approve, reject, or modify before moving on
+4. Once resolved or deferred, mark status `✓` or note deferral
+5. Move to the next issue
+
+Do NOT present multiple issues at once. One issue per response.
+
+### Phase 3 — Final Status Table
+
+After all issues have been walked, present the updated table with final statuses.
+If any remain `✗`, call them out explicitly and ask if the user wants another pass.
+When suggestions become very incremental across rounds, tell the user:
+"This plan has likely converged — ready for /beads-create."
 
 ## Convergence
 
 Each invocation is one round. After 4-5 rounds the suggestions become very
-incremental. When that happens, explicitly tell the user: "This plan has likely
-converged — the remaining suggestions are incremental. Ready for /beads-create."
+incremental. Convergence is signaled in the Phase 3 final status table.
 
 ## Rules
 

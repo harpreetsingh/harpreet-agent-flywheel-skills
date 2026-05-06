@@ -49,9 +49,56 @@ Determine what you're reviewing and apply the matching lens:
 2. Read each artifact completely — no skimming
 3. Apply the matching checklist (below)
 4. Classify each finding: **Bug** / **Defect** / **Gap** / **Nit**
-5. Fix Bugs and Defects directly (for code and docs). For Plans, Pitches, and Beads:
-   report findings — do NOT edit without approval.
-6. Summarize what was found, fixed, and flagged
+5. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+6. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+7. For code and docs: fix Bugs and Defects directly during walkthrough.
+   For Plans, Pitches, and Beads: report findings — do NOT edit without approval.
+8. **Final status table** after all issues are walked
+
+## Output Protocol
+
+All review output follows a three-phase structure. Do NOT dump a wall of findings.
+
+### Phase 1 — Issues Table
+
+After completing your scan, present ONLY a compact table. No elaboration, no diffs,
+no paragraphs of analysis. Just the table:
+
+```
+| #  | Handle           | Description                                      | Crit | Status |
+|----|------------------|--------------------------------------------------|------|--------|
+| 1  | creation-rail    | The rail on UX requires better definition        | High | ✗      |
+| 2  | icon-broken      | The icons on the UX needs revisiting             | Low  | ✗      |
+```
+
+Column definitions:
+- **#**: Sequential number
+- **Handle**: 2-5 word slug that makes the issue easy to reference in conversation
+  (e.g., `missing-error-boundary`, `stale-api-ref`, `vague-ac`)
+- **Description**: 1-2 sentences, no more
+- **Crit**: `High` / `Med` / `Low`
+- **Status**: `✗` (open) or `✓` (addressed)
+
+Sort by criticality (High first), then by artifact order.
+
+After presenting the table, say:
+> "Ready to walk through each issue. Say **go** to start from #1, or pick a number."
+
+### Phase 2 — One-at-a-Time Walkthrough
+
+For each issue (in order, or as the user picks):
+1. State the handle and issue number
+2. Show the full analysis: what's wrong, where, why it matters
+3. For code/docs: propose or apply the fix. For plans/beads: propose the fix and wait.
+4. Once resolved or deferred, mark status `✓` or note it was deferred
+5. Move to the next issue
+
+Do NOT present multiple issues at once. One issue per response.
+
+### Phase 3 — Final Status Table
+
+After all issues have been walked, present the updated table with final statuses.
+If any remain `✗`, call them out explicitly and ask if the user wants another pass.
 
 ---
 
