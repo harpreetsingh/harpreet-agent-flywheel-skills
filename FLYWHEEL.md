@@ -69,10 +69,10 @@ wave-gate, sprint-close, review, recovery).
 │    Reads pitch.md + planning-context/ → synthesizes PLAN.md             │
 │    (architecture, deliverables, CLI commands, diagrams)                  │
 │         ↓                                                               │
-│    /plan-review docs/features/<slug>/PLAN.md    (repeat 4-5×)           │
+│    /repeat /plan-review docs/features/<slug>/PLAN.md                    │
 │         ↓                                                               │
 │    Each round: severity-rated proposals → user approves → apply         │
-│    Converges after 4-5 rounds                                           │
+│    Converges after 4-5 rounds (auto-detected by /repeat)                │
 │         ↓                                                               │
 │    OUTPUT: docs/features/<slug>/PLAN.md (refined)                       │
 └────────────────────────────────────────┬────────────────────────────────┘
@@ -236,6 +236,7 @@ Beads (bd):
 | `/ux-polish` | Deep UI/UX + CLI UX scrutiny targeting Stripe-level quality | Component or dir | Fixes or beads for gaps |
 | `/land-the-plane` | Quality gates → bd preflight → logical commits → push → PR | — | Commits + PR URL |
 | `/sprint-recover` | Triage failed sprint, reopen beads, create TDD pairs, repair deps | Feature dir or triage doc | Clean backlog ready for `/sprint-exec-plan` |
+| `/repeat` | Run any review skill in rounds until convergence | `[N] /<skill> [args]` | Converged artifact + summary table |
 | `/flywheel` | Render this lifecycle map, zoom into any phase | Phase name (optional) | `FLYWHEEL.md` + interactive display |
 
 ### Agents (spawned by Director during sprints)
