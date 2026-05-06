@@ -24,9 +24,51 @@ Works on: **code, PLANs, research/planning-context, docs, beads.**
 - If `$ARGUMENTS` is a file or directory → review those artifacts
 - If `$ARGUMENTS` is a bead ID (e.g., `beads-xxx`) → review that bead and its dependents
 - If `$ARGUMENTS` is `--beads` → review all open beads (`bd list --status=open`)
+- If `$ARGUMENTS` is `--self-review` → **post-implementation self-review** (see below)
 - If no arguments → detect what changed in this work session:
   1. Try `git diff --name-only $(git merge-base HEAD main)..HEAD`
   2. Fallback to `git diff --name-only HEAD~5` if on main
+
+## Self-Review Mode (`--self-review`)
+
+Lightweight mode for after you've just finished implementing something. Faster
+and more targeted than a full cold-read audit. Use this before reporting a
+ticket as done, or anytime you've just written code.
+
+**Scope:** only files you created or modified (from `git diff --name-only` of
+uncommitted + staged changes).
+
+**Process — run in rounds until clean:**
+
+**Each round:**
+1. Get the list of changed files: `git diff --name-only HEAD` + `git diff --name-only --cached`
+2. Read every changed file completely — no skimming
+3. For each file, look specifically for:
+   - **Bugs:** logic errors, off-by-one, wrong operators, null handling, missing returns
+   - **Stubs:** placeholder code you meant to come back to but didn't
+   - **Half-implementations:** happy path only, missing error cases, switch missing branches
+   - **Copy-paste artifacts:** wrong variable names, stale comments from copied code
+   - **Contract violations:** does the code match what callers/tests expect?
+   - **Dead code:** unused imports, assigned-but-never-read variables
+4. Run the mechanical stub scan (same grep from the Code checklist)
+5. Run the mechanical test integrity scan if any test files were changed
+6. Fix everything found
+7. If fixes were made → run another round (bugs cluster — fixing one often reveals another)
+8. If no fixes needed → clean. Stop.
+
+**Convergence:**
+- Simple code: typically 1-2 rounds
+- Complex code: typically 2-3 rounds
+- If still finding bugs after 3 rounds: stop and escalate. The implementation
+  approach may be fundamentally off — a full `/fresh-eyes` review or a different
+  implementer may be needed.
+
+**Report:** `Self-review: DONE — N rounds, M total issues fixed`
+(e.g., `Self-review: DONE — 2 rounds, 4 issues fixed` or `Self-review: DONE — 1 round, clean`)
+
+**This mode skips** the full Output Protocol (no issues table, no walkthrough).
+It's fast iterative passes: scan, fix, repeat until clean. If you find complex
+architectural issues, escalate to a full `/fresh-eyes` review.
 
 ## Auto-Detect Artifact Type
 

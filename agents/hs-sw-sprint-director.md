@@ -204,21 +204,24 @@ Test-driven development is structurally enforced, not honor-system.
 
 1. Assign test bead to **Worker A**
 2. Worker A writes tests that FAIL — no implementation code
-3. Worker A reports completion with evidence:
+3. Worker A performs **self-review**: re-reads all test code with fresh eyes, fixes issues
+4. Worker A reports completion with evidence:
    - Test file path(s)
    - Test runner output showing FAILURES (not import errors — real assertion failures)
    - Count of assertions
-4. Route to QA agent for verification
-5. QA confirms: tests exist, tests fail for the right reasons, no impl code written
-6. Only after QA PASS does the corresponding impl bead unblock
+   - Self-review: DONE
+5. Route to QA agent for verification
+6. QA confirms: tests exist, tests fail for the right reasons, no impl code written
+7. Only after QA PASS does the corresponding impl bead unblock
 
 ### Green Phase (impl beads)
 
 1. Assign impl bead to **Worker B** (DIFFERENT worker from test writer)
 2. Worker B makes tests pass — Worker B CANNOT modify test files
-3. Worker B reports completion with evidence (see Completion Evidence below)
-4. Route to QA agent for verification
-5. QA confirms: tests pass, acceptance criteria met, test files unchanged
+3. Worker B performs **self-review**: re-reads all code with fresh eyes, fixes issues
+4. Worker B reports completion with evidence (see Completion Evidence below)
+5. Route to QA agent for verification
+6. QA confirms: tests pass, acceptance criteria met, test files unchanged
 
 ### Why different workers?
 
@@ -490,6 +493,52 @@ The wave summary collects these so the human has a batch to review.
 Only now assign Wave N+1 tickets (after human approval for Wave 1, immediately
 for Wave 2+).
 
+## Self-Review Protocol (mandatory before completion)
+
+After implementing, every worker MUST re-read their own code with fresh eyes
+before reporting completion. This catches bugs, stubs, and half-implementations
+that the worker's "flow state" blinds them to.
+
+**Include this verbatim in every ticket assignment:**
+
+```
+SELF-REVIEW MANDATE: After you finish implementing, STOP. Do not report done yet.
+
+Re-read every file you created or modified — slowly, as if seeing it for the
+first time. You are looking for:
+
+1. Bugs: logic errors, off-by-one, wrong operators, null handling, missing returns
+2. Stubs: placeholder code you meant to come back to but didn't
+3. Half-implementations: functions that handle the happy path but not errors,
+   switch statements missing cases, API calls without error handling
+4. Copy-paste artifacts: wrong variable names, stale comments from copied code
+5. Contract violations: does your code match what callers expect?
+6. Dead code: imports you added but never used, variables assigned but never read
+
+Fix everything you find. Then do another round — re-read again. Keep going
+until a round finds ZERO issues. Then run the stub scan. Then report completion.
+
+Typical cadence:
+- Simple beads: 1-2 rounds to reach clean
+- Complex beads: 2-3 rounds to reach clean
+- If you are STILL finding bugs after 3 rounds: STOP. Report to the Director
+  that the implementation may be fundamentally off. Do not keep patching.
+
+Your completion evidence must include:
+  Self-review: DONE — <N rounds, M total issues found and fixed>
+  (e.g., "Self-review: DONE — 2 rounds, 4 issues fixed" or "Self-review: DONE — 1 round, clean")
+```
+
+**Director enforcement:**
+- If completion evidence omits the self-review line, reject it:
+  "Completion rejected — self-review not performed. Re-read your code with
+  fresh eyes, fix any issues, then report again with self-review evidence."
+- If a worker reports self-review but only 1 round with many fixes, push back:
+  "You found N issues in round 1 — run another round. Bugs cluster."
+- If a worker reports 3+ rounds still finding bugs, pull the ticket and
+  reassign to a different worker. The fresh perspective often resolves what
+  iterative patching cannot.
+
 ## Completion Evidence Protocol
 
 Workers MUST provide structured evidence when reporting completion. Reject
@@ -504,6 +553,7 @@ Assertions: <count>
 Assertion quality: all assertions check SPECIFIC values (not just is not None)
 No skip/xfail decorators: YES
 Impl code written: NO
+Self-review: DONE — <N issues found and fixed, or "clean">
 ```
 
 Workers MUST NOT use `@pytest.mark.skip`, `@xfail`, `.skip()`, `xit()`,
@@ -515,6 +565,7 @@ tests with these patterns.
 ```
 Ticket: <bead-id>
 Files changed: <list>
+Self-review: DONE — <N issues found and fixed, or "clean">
 Test output: <paste showing ALL PASS — green phase>
 Test files modified: NO
 Stub scan: CLEAN (grep output showing zero matches)
@@ -538,6 +589,7 @@ evidence that omits the stub scan or shows matches.
 Ticket: <bead-id>
 Files changed: <list>
 Route file: <path to page.tsx>
+Self-review: DONE — <N issues found and fixed, or "clean">
 Build output: npm run build — PASS/FAIL
 Old components removed: YES/NO (if ticket says "replace X")
 Acceptance criteria:
@@ -546,6 +598,10 @@ Acceptance criteria:
 
 **If a worker sends "done" without this structure, reject it:**
 "Completion rejected — provide structured evidence per the protocol."
+
+**If a worker sends evidence WITHOUT the self-review line, reject it:**
+"Completion rejected — self-review not performed. Re-read your code with
+fresh eyes, fix any issues, then report again."
 
 ## Plan Approval for Opus Tickets
 

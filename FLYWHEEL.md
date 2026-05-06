@@ -124,9 +124,13 @@ wave-gate, sprint-close, review, recovery).
 │  │                                                                   │   │
 │  │  ASSIGN: test beads → Worker A (red phase)                        │   │
 │  │       ↓                                                           │   │
+│  │  SELF-REVIEW: Worker re-reads own code with fresh eyes, fixes     │   │
+│  │       ↓                                                           │   │
 │  │  QA VERIFY: tests fail for right reasons, no impl code            │   │
 │  │       ↓                                                           │   │
 │  │  ASSIGN: impl beads → Worker B (green phase, DIFFERENT worker)    │   │
+│  │       ↓                                                           │   │
+│  │  SELF-REVIEW: Worker re-reads own code with fresh eyes, fixes     │   │
 │  │       ↓                                                           │   │
 │  │  QA VERIFY: tests pass, acceptance criteria met                   │   │
 │  │       ↓                                                           │   │
