@@ -41,24 +41,73 @@ be changed to make the system work better for users?
    - Do the CLI commands include `--json` flag for agent/machine consumption?
    - If missing: add CLI requirements to the bead's acceptance criteria
    - Flag any bead that delivers an API/UI without CLI as incomplete
-5. **Deep review** (for each bead, `bd show <id>`):
+5. **Cold-agent self-sufficiency check** (CRITICAL — run for every bead):
+
+   The test: *Can an agent implement this bead with ONLY the bead description,
+   acceptance criteria, and the codebase? No reading other beads, no PLAN.md,
+   no prior session context.* If the answer is no, the bead fails.
+
+   For each bead (`bd show <id>`), verify:
+   - [ ] **No cross-references** — grep the description for "See PLAN.md",
+     "See bead", "as described in", "refer to", "per the plan". These are
+     **critical failures**. The referenced content must be inlined verbatim.
+     A worker agent cannot read PLAN.md — it only sees the bead.
+   - [ ] **Context** — does the description explain WHY this exists, not just
+     WHAT to do? A bead that says "Add role field to invite" without explaining
+     the feature it serves will produce code that technically works but doesn't
+     integrate.
+   - [ ] **Type/model definitions inlined** — if the bead mentions TypeScript
+     types, Pydantic models, DB schemas, or API contracts, are the actual field
+     definitions in the bead? "Create the InviteRequest model" fails.
+     "Create InviteRequest with fields: email (str), role (MemberRole enum:
+     admin|member|viewer), workspace_id (UUID)" passes.
+   - [ ] **Endpoint URLs and methods** — if the bead involves API work, are
+     exact routes (`POST /api/v1/invites`), request shapes, and response shapes
+     specified? Missing URLs mean the agent invents them.
+   - [ ] **Return types, request shapes, event names** — for hooks, SSE, or
+     async work: are the actual shapes, event names, and import paths specified?
+     "Add real-time updates" fails. "Listen to SSE event `bead:status_changed`
+     with payload `{bead_id: string, status: string}` from `/api/v1/events`" passes.
+   - [ ] **File pointers** — are relevant files, endpoints, or components named
+     with actual paths? "Update the invite dialog" fails. "Update
+     `src/components/members/InviteDialog.tsx`" passes.
+   - [ ] **Existing code to reuse** — has the bead identified existing components,
+     utilities, or patterns the worker should extend rather than reinvent? If not,
+     grep/glob for relevant concepts and add pointers: "Use existing InviteDialog
+     in `src/components/members/InviteDialog.tsx` as the base — extend with role
+     prop." This is CRITICAL for brownfield codebases.
+   - [ ] **UX baseline** (frontend beads) — does the bead specify which existing
+     UX patterns to follow? ("Match the member list pattern in MemberTable.tsx —
+     same row height, same action menu position, same empty state.") Without this,
+     workers invent their own patterns and create visual inconsistency.
+   - [ ] **Mock/test data shapes** — if the bead or its test-pair needs fixtures,
+     are the shapes specified? "Write tests with mock data" fails. "Mock
+     `listInvites` returning `[{id: uuid, email: string, role: MemberRole,
+     status: 'pending'|'accepted'}]`" passes.
+   - [ ] **Scope boundary** — does the bead explicitly state what's OUT of scope?
+     For frontend beads: "Do NOT modify layout/spacing/styling of existing
+     components."
+   - [ ] **Mechanically verifiable AC** — every acceptance criterion must be
+     checkable by grep, curl, test output, or file read. If a criterion says
+     "it works" or "handles errors" — rewrite it with the specific observable
+     (endpoint returns 200 with `{id, status}`, component renders role dropdown
+     with 3 options, `pytest tests/test_invite.py` passes).
+
+   **If a bead fails any check:** flag it as an issue. Propose the enriched
+   description with the missing content inlined.
+
+6. **Deep review** (for each bead, `bd show <id>`):
    - Does this bead make sense? Is it necessary?
    - Is the scope right? Too big = hard to execute. Too granular = overhead.
      A good task is 1-4 hours of focused agent work.
-   - Does it have **mechanically verifiable** acceptance criteria? Each
-     criterion must be checkable by grep, curl, test output, or file read.
-     If a criterion says "it works" or "handles errors" — rewrite it with
-     the specific observable (endpoint returns X, component renders Y,
-     command outputs Z). Vague criteria are the root cause of stubs passing QA.
    - Are dependencies correct and complete?
-   - Is the description self-contained enough for an agent with no prior context?
    - Could beads be merged (overlapping scope), split (too large), reordered
      (wrong priority), or removed (unnecessary)?
-6. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
-7. **Walk through issues one-at-a-time** with the user (see Output Protocol)
-8. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
+7. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+8. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+9. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
    after user approves each change
-9. **Final status table** after all issues are walked
+10. **Final status table** after all issues are walked
 
 ## Output Protocol
 
@@ -66,7 +115,7 @@ All review output follows a three-phase structure. Do NOT dump a wall of finding
 
 ### Phase 1 — Issues Table
 
-After completing all checks (steps 1-5), present ONLY a compact table. No elaboration,
+After completing all checks (steps 1-6), present ONLY a compact table. No elaboration,
 no `bd update` commands, no paragraphs of analysis. Just the table:
 
 ```
@@ -105,6 +154,7 @@ Do NOT present multiple issues at once. One issue per response.
 
 After all issues have been walked, present the updated table with final statuses.
 Organize a summary by category:
+- Self-sufficiency failures found and fixed (cross-references, missing types, missing URLs)
 - TDD gaps found and fixed
 - Domain balance issues
 - CLI coverage gaps found and fixed
