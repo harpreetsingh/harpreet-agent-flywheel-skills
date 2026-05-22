@@ -629,6 +629,11 @@ tests with these patterns.
 ```
 Ticket: <bead-id>
 Files changed: <list>
+Step evidence:
+  Search: <Serena calls (find_symbol, search_symbols) + grep fallback>, found <what> / confirmed absent
+  Read: <files read>, key insight: <what shaped the approach>
+  Implement: <files changed>, approach: <why this approach>
+  Verify: <test command + output summary>
 Reuse check: searched <what dirs/patterns>, found <what existing code>, reused <what> / built new because <why>
 Scope check: only files required by this ticket modified — YES
 Self-review: DONE — <N issues found and fixed, or "clean">
@@ -748,9 +753,10 @@ BROWNFIELD MANDATE: This is a maturing codebase — not a blank slate. Your
 default is to FIND and REUSE existing code, not to BUILD new.
 
 Before writing ANY new component, utility, hook, or pattern:
-1. Grep for the concept (e.g., "member", "vault", "invite")
-2. Glob for likely file patterns (e.g., **/member*.tsx, **/invite*)
-3. Read the relevant directory listings
+1. Serena first: find_symbol, search_symbols, find_references for semantic matches
+2. Grep fallback: grep for the concept if Serena returns nothing (e.g., "member", "vault", "invite")
+3. Glob for likely file patterns (e.g., **/member*.tsx, **/invite*)
+4. Read the relevant directory listings
 
 You MUST name what you searched in your completion evidence. "I checked
 [specific files/dirs] and confirmed nothing existing solves this." If you

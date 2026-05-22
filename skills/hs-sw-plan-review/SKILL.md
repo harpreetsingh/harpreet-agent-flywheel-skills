@@ -30,11 +30,13 @@ deep review.
    - How compelling and useful it is for end users
    - Feasibility and implementation cost of each section
    - **Brownfield awareness** — does the plan identify existing code, components,
-     or patterns to extend rather than rebuild? Flag any section that proposes
-     building something new without acknowledging what already exists. For
-     maturing codebases, the plan should include a "What exists already" section
-     mapping existing code to planned features. Missing this causes agents to
-     reinvent during sprints.
+     or patterns to extend rather than rebuild? Use Serena (`search_symbols`,
+     `find_symbol`) + grep to verify the plan's claims — don't trust the text
+     alone. Flag any section that proposes building something new without
+     acknowledging what already exists. For maturing codebases, the plan MUST
+     include a "What Exists Already" section mapping existing code to planned
+     features, with file paths verified via Serena. Missing this causes agents
+     to reinvent during sprints.
    - **CLI completeness** — does every feature with an API or UI also specify
      CLI commands? Are `--json` flags included? Is the CLI a first-class
      interface or an afterthought? Flag any feature missing CLI commands as

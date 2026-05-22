@@ -87,6 +87,12 @@ be changed to make the system work better for users?
    - [ ] **Scope boundary** — does the bead explicitly state what's OUT of scope?
      For frontend beads: "Do NOT modify layout/spacing/styling of existing
      components."
+   - [ ] **Execution steps present** — does the bead description include a
+     `## Steps` section with the 4 standard steps (Search, Read, Implement,
+     Verify)? The Search step must specify Serena (`find_symbol`,
+     `search_symbols`, `find_references`) as primary with grep/glob fallback.
+     If missing: add the standard steps template. Required for any bead
+     that will be worked in an upcoming wave.
    - [ ] **Mechanically verifiable AC** — every acceptance criterion must be
      checkable by grep, curl, test output, or file read. If a criterion says
      "it works" or "handles errors" — rewrite it with the specific observable

@@ -44,6 +44,26 @@ granular set of beads with full dependency structure.
        or UI feature MUST also specify its CLI counterpart.
      - Relevant considerations and gotchas
      - How it serves the overarching project goals
+     - **Standard execution steps** — every bead gets a `## Steps` section
+       in its description. This is the execution protocol — not more
+       acceptance criteria. Workers must provide evidence per step; QA
+       rejects completion reports with missing step evidence.
+       ```
+       ## Steps
+       - [ ] **Search** — Serena (`find_symbol`, `search_symbols`,
+             `find_references`) for semantic matches + grep/glob fallback
+             if Serena returns nothing. Evidence: tools used, files/dirs
+             searched, what was found or confirmed absent.
+       - [ ] **Read** — read all identified files in full. Evidence: key
+             insights that shaped the implementation approach.
+       - [ ] **Implement** — make the change. Evidence: files changed and
+             approach chosen.
+       - [ ] **Verify** — run tests and linters. Evidence: test output
+             with pass/fail counts.
+       ```
+       These 4 steps map to `[[steps]]` in a future GasCity formula. When
+       migrating to GasCity, `gc sling` enforces step order structurally —
+       the checklist becomes redundant but the step definitions carry over.
    - Appropriate type (epic/feature/task/bug) and priority (0-4)
    - Record the returned bead ID for dependency wiring
 4. **Phase 1b — Create TDD test beads** (see TDD section below):
