@@ -133,6 +133,15 @@ Verify the worker's implementation makes tests pass and meets acceptance criteri
   includes a specific `Reuse check:` with named files/dirs searched. Vague
   claims like "I checked the codebase" = FAIL. If the worker built new code,
   verify their justification by grepping for the concept yourself.
+- [ ] **Step execution evidence** — if the bead has a `## Steps` section,
+  verify the worker's completion report includes evidence for EACH step:
+  - **Search**: names tools used (Serena and/or grep), specific dirs/files
+    searched, states what was found or confirmed absent
+  - **Read**: names files read and key insight that shaped the approach
+  - **Implement**: names files changed
+  - **Verify**: shows actual test/lint output with pass/fail counts
+  Vague "searched the codebase" = FAIL. A step with no evidence = FAIL.
+  If the bead has no `## Steps` section, skip this check (pre-molecule bead).
 - [ ] **No scope creep** — worker didn't add features, refactors, or "improvements"
   beyond what the bead specified. This is a CRITICAL check for brownfield codebases.
   Review the diff carefully:

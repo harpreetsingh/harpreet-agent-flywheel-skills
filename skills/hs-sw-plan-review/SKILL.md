@@ -29,12 +29,17 @@ deep review.
    - Performance, reliability, and security gaps
    - How compelling and useful it is for end users
    - Feasibility and implementation cost of each section
-   - **Brownfield awareness** — does the plan identify existing code, components,
-     or patterns to extend rather than rebuild? Flag any section that proposes
-     building something new without acknowledging what already exists. For
-     maturing codebases, the plan should include a "What exists already" section
-     mapping existing code to planned features. Missing this causes agents to
-     reinvent during sprints.
+   - **Prior art and brownfield awareness** — does the plan show evidence of
+     checking CM, CASS, and the codebase? Verify:
+     1. Did the planner run `cm context` and incorporate relevant rules/anti-patterns?
+     2. Did the planner run `cass search` and reference prior sessions that touched
+        this area? Past debugging sessions and design decisions are gold.
+     3. Does the "What Exists Already" section have file paths verified via
+        Serena + grep — not just assertions?
+     Flag any section that proposes building something new without checking all
+     three layers. For maturing codebases, the plan MUST include a "What Exists
+     Already" section mapping prior sessions AND existing code to planned features.
+     Missing this causes agents to reinvent during sprints.
    - **CLI completeness** — does every feature with an API or UI also specify
      CLI commands? Are `--json` flags included? Is the CLI a first-class
      interface or an afterthought? Flag any feature missing CLI commands as

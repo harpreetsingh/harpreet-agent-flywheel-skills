@@ -2,7 +2,6 @@
 name: hs-sw-land-the-plane
 description: Run quality gates, commit changes in logical groups, sync beads, and push to remote
 argument-hint: [commit-message-hint]
-disable-model-invocation: true
 ---
 
 # /land — Land the Plane
@@ -33,14 +32,10 @@ Run the full pre-push checklist, commit, and push. Work is NOT done until
    `.DS_Store`, `*.sqlite3`
    If found: add to `.gitignore`, unstage, and warn.
 
-3. **Quality gates** — Detect the project's stack from the files that changed
-   and run the appropriate checks. Defer to CLAUDE.md for project-specific gate
-   commands if present. Common patterns:
-   - Python: linter (`ruff check`/`flake8`) → formatter check → tests (`pytest`)
-   - TypeScript/JS: linter (`eslint`/`biome`) → type check (`tsc --noEmit`) → build
-   - Rust: `cargo clippy` → `cargo test`
-   - Go: `go vet` → `go test ./...`
-   Only run gates for directories with actual changes.
+3. **CI preflight** — Run `/hs-sw-ci-preflight` to execute all tests and linters
+   matching the exact commands GitHub Actions will run. This is a hard gate:
+   if preflight fails, STOP and report the failures. Do not proceed to commit.
+   Pass `--fix` if you want lint/format issues auto-corrected first.
 
 4. **Beads preflight** (if `.beads/` directory exists)
    ```
@@ -103,6 +98,19 @@ Run the full pre-push checklist, commit, and push. Work is NOT done until
 
    **Branch strategy:** `feature/<name>` or `fix/<name>` → PR → `main` → `production`.
    No `development` branch.
+
+7. **Monitor CI** — After the PR is open, watch GitHub Actions:
+   ```bash
+   gh pr checks --watch
+   ```
+   Wait for all checks to complete. Report final status:
+   - All green → done. Report PR URL and "CI passed."
+   - Any red → report which jobs failed with their log URLs:
+     ```bash
+     gh run view <run-id> --log-failed
+     ```
+   Do not exit until CI completes or the user interrupts. CI failures after a
+   clean preflight are usually environment or secrets issues — flag that distinction.
 
 ## Rules
 
