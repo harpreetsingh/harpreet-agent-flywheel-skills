@@ -24,6 +24,45 @@
 [fill in with top-level directory layout]
 ```
 
+### Component Map (Frontend Projects)
+
+> Skip this section for backend-only or CLI projects.
+
+Agents working on frontend tickets must know which file owns which UI region.
+Without this map they guess — and incorrect placement, duplicate components,
+and edits to the wrong file are the result.
+
+**App shell / root layout:**
+
+```
+[fill in render tree from root layout — e.g.:
+RootLayout (app/layout.tsx)
+├── AuthGate (components/auth/...)
+└── AppShell (components/layout/...)
+    ├── Sidebar (components/layout/sidebar)
+    └── Main content → page.tsx per route]
+```
+
+**Route → file mapping:**
+
+| Route | Page file | Key components rendered |
+|-------|-----------|------------------------|
+| `/` | `app/page.tsx` | [fill in] |
+| [add all routes] | | |
+
+**Component directory guide:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `components/ui/` | Shared primitives (shadcn/ui or equivalent) — never modify directly |
+| `components/layout/` | App shell, nav, sidebar |
+| [add domain directories] | |
+
+**Rules derived from this map:**
+- Before writing any frontend bead, look up the target route here to get the authoritative file
+- Never modify files in `components/ui/` unless the request is explicitly about the design system
+- When two files have similar names, this map is the tiebreaker
+
 ---
 
 ## Work Execution Contract
@@ -184,6 +223,21 @@ creates tickets for any missing entry points listed here.
 - Revise in place: migrate callers and remove old code in the same commit
 - New files are RARE — incredibly high bar. Prefer editing existing files.
 - No backwards-compatibility shims — fix callers directly
+
+### Surgical Component Edits (Frontend)
+
+Never rewrite a component file wholesale. Before modifying any UI component:
+
+1. Read the entire file first
+2. Identify the exact function, hook, or JSX block that needs to change
+3. Change ONLY that — preserve all other logic, props, component states, and event handlers
+
+A correct result via full-file rewrite is still a failure. The diff should touch
+only the lines the request requires. If you find yourself replacing more than ~30%
+of a component file, stop — you are almost certainly doing more than was asked.
+
+Component states that must be preserved unless the request explicitly changes them:
+loading, empty, error, data (populated), partial (some data missing). All five.
 
 ### Third-Party Libraries
 
