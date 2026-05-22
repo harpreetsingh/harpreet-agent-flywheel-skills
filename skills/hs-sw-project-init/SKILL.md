@@ -2,7 +2,6 @@
 name: hs-sw-project-init
 description: Bootstrap a new project with AGENTS.md, beads, quality gates, and standard structure
 argument-hint: [project-name]
-disable-model-invocation: true
 ---
 
 # /project-init — Bootstrap a New Project
