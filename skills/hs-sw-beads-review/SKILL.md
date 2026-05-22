@@ -89,10 +89,12 @@ be changed to make the system work better for users?
      components."
    - [ ] **Execution steps present** — does the bead description include a
      `## Steps` section with the 4 standard steps (Search, Read, Implement,
-     Verify)? The Search step must specify Serena (`find_symbol`,
-     `search_symbols`, `find_references`) as primary with grep/glob fallback.
-     If missing: add the standard steps template. Required for any bead
-     that will be worked in an upcoming wave.
+     Verify)? The Search step must include all three layers:
+     1. `cm context` — prior rules and anti-patterns from CM playbook
+     2. `cass search` — past sessions that solved similar problems
+     3. Serena + grep/glob — existing code in the current codebase
+     If missing or incomplete: add the standard steps template. Required
+     for any bead that will be worked in an upcoming wave.
    - [ ] **Mechanically verifiable AC** — every acceptance criterion must be
      checkable by grep, curl, test output, or file read. If a criterion says
      "it works" or "handles errors" — rewrite it with the specific observable

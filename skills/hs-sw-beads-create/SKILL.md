@@ -50,10 +50,14 @@ granular set of beads with full dependency structure.
        rejects completion reports with missing step evidence.
        ```
        ## Steps
-       - [ ] **Search** — Serena (`find_symbol`, `search_symbols`,
-             `find_references`) for semantic matches + grep/glob fallback
-             if Serena returns nothing. Evidence: tools used, files/dirs
-             searched, what was found or confirmed absent.
+       - [ ] **Search** — Three layers, in order:
+             1. `cm context "<bead title>" --json` — prior rules, anti-patterns,
+                past solutions from CM playbook
+             2. `cass search "<concept>" --json --limit 5` — find past sessions
+                that solved similar problems
+             3. Serena (`find_symbol`, `search_symbols`, `find_references`) +
+                grep/glob fallback — find existing code in the current codebase
+             Evidence: CM rules found, CASS sessions found, Serena/grep results.
        - [ ] **Read** — read all identified files in full. Evidence: key
              insights that shaped the implementation approach.
        - [ ] **Implement** — make the change. Evidence: files changed and

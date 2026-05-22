@@ -104,12 +104,16 @@ Paragraphs describing flows are a red flag — they hide complexity and are hard
   in decision docs. Don't summarize away the WHY.
 - Write in the same voice as the source docs. Don't sanitize personality.
 - Use extended thinking for synthesis.
-- **Brownfield mapping required.** For each deliverable, use Serena
-  (`search_symbols`, `find_symbol`) + grep to identify existing code that
-  implements similar concepts. Include a "What Exists Already" subsection
-  in the plan mapping existing code to planned changes — with verified
-  file paths. This prevents agents from rebuilding during sprints. A plan
-  that proposes new code without checking what exists is incomplete.
+- **Prior art check required.** Before drafting, run:
+  1. `cm context "<feature name>" --json` — get rules, anti-patterns, and
+     past solutions from the CM playbook
+  2. `cass search "<feature>" --json --limit 5` — find past sessions that
+     touched this area (prior implementations, debugging, design decisions)
+  3. Serena (`search_symbols`, `find_symbol`) + grep — find existing code
+  Include a "What Exists Already" subsection in the plan mapping prior
+  sessions AND existing code to planned changes — with verified file paths.
+  This prevents agents from rebuilding during sprints. A plan that proposes
+  new code without checking CM, CASS, and the codebase is incomplete.
 - **No diagrams = incomplete plan.** Do not write "diagram TBD" — draw it now.
 - **CLI is a first-class deliverable.** Every feature that has an API or UI MUST
   also specify its CLI commands. Include a "CLI Interface" section in the plan
