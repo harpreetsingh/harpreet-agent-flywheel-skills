@@ -1,7 +1,7 @@
 ---
 name: hs-sw-beads-create
 description: Create comprehensive beads (epics/tasks/subtasks) with dependencies from a plan
-argument-hint: [plan-file-path]
+argument-hint: [plan-file-path] [--labels label1,label2,...]
 ---
 
 # /beads-create — Plan to Beads
@@ -17,12 +17,26 @@ argument-hint: [plan-file-path]
 Read the plan at `$ARGUMENTS` (default: `PLAN.md`) and create a comprehensive,
 granular set of beads with full dependency structure.
 
+**Arguments:**
+- `[plan-file-path]` — the plan to decompose (default `PLAN.md`).
+- `--labels label1,label2,...` (optional) — comma-separated labels applied to the
+  epic and **every** bead created (e.g. a feature tag like `org-management`, or a
+  GH ref like `gh-269`). If omitted, no extra labels are added. To add labels to
+  an already-created set later, use `/hs-sw-beads-label`.
+
 ## Process
 
+0. Parse `$ARGUMENTS`: separate the plan path from an optional `--labels a,b,c`
+   value. Hold the label list for use in every `bd create` below.
 1. Read the plan file thoroughly
 2. Decompose into epics → tasks → subtasks. Maintain traceability — note which
    plan section each bead maps to in the description.
 3. **Phase 1 — Create beads** (can be parallelized):
+   Create the epic first; capture its ID. Then create each task/subtask under it.
+   - **Epic:** `bd create --type=epic ... [--labels <list>]` (apply `--labels` if provided).
+   - **Each task/subtask:** `bd create --parent <epic-id> ... [--labels <list>]`.
+     `--parent` makes the epic→ticket hierarchy explicit so the set is enumerable
+     later (`bd list --parent <epic-id>`) and so `/hs-sw-beads-label` can target it.
    For each bead, create with `bd create`:
    - Clear imperative title
    - Detailed description including:
@@ -94,7 +108,7 @@ granular set of beads with full dependency structure.
    - Record the returned bead ID for dependency wiring
 4. **Phase 1b — Create TDD test beads** (see TDD section below):
    For each implementation bead with testable acceptance criteria, create a
-   companion test bead.
+   companion test bead — also with `--parent <epic-id>` and the same `--labels`.
 5. **Phase 2 — Wire dependencies** (must be sequential, after all IDs exist):
    Overlay dependency structure with `bd dep add`.
    Wire TDD pairs: test bead BLOCKS impl bead (`bd dep add <impl-id> <test-id>`).
@@ -107,6 +121,11 @@ granular set of beads with full dependency structure.
    - `bd ready` to confirm which beads are immediately actionable
    - Flag anything that looks wrong (orphaned beads, everything blocked, etc.)
    - Verify every impl bead with testable criteria has a companion test bead
+   - If `--labels` was provided, confirm: `bd list --parent <epic-id> --label <one-of-the-labels>`
+     returns the full set.
+7. **Report** — print the **epic ID** and the count of beads created, plus the
+   labels applied (or "no labels"). The epic ID is what `/hs-sw-beads-label` and
+   the sprint skills take as their handle to the whole set.
 
 ## TDD: Test-First Beads
 
