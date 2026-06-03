@@ -405,9 +405,23 @@ reporting).
 Determine the file scope first:
 ```bash
 git diff <wave-start-sha>..HEAD --name-only > /tmp/wave-N-files.txt
+NON_TEST=$(grep -vE 'test|__test__|\.spec\.' /tmp/wave-N-files.txt | wc -l)
+CHANGED_LINES=$(git diff <wave-start-sha>..HEAD --numstat | awk '{s+=$1+$2} END{print s}')
 ```
 
-**Always spawn these 3 lenses (in parallel):**
+**Shard lenses by volume (prevents review collapse).** One agent reading a giant
+diff skims and misses bugs — review quality collapses exactly when ticket volume
+is highest. So scale each lens by diff size:
+- Diff is **≤15 non-test files AND ≤2000 changed lines** → one agent per lens (default).
+- Diff **exceeds either threshold** → SHARD each lens: partition the changed files
+  by directory/domain into K groups (K = ceil(non_test_files / 15)) and spawn K
+  agents for that lens, each scoped to one partition. The lens is the dimension;
+  the diff is partitioned beneath it. Reuse the same domain split you use for QA
+  (backend/frontend/infra) as the partition key when it applies.
+- Log the sharding in the wave summary so coverage is auditable (e.g.
+  "correctness: 2 shards over backend/ + frontend/").
+
+**Always spawn these 3 lenses (in parallel; shard each per the rule above):**
 
 ```
 Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-correctness-wN", team_name=<team>)
@@ -442,7 +456,20 @@ Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-ux-wN", team_name=<t
 
 **Wait for all review agents to report.** Collect their beads.
 
-**If any review agent filed beads:**
+**Consolidate before acting (prevents the human/Director drowning in N streams).**
+With multiple lenses — each possibly sharded — you now have many independent bead
+streams. Do NOT triage them raw. First produce a single deduped digest:
+1. **Dedup across lenses** — two lenses (and two shards) routinely file the same
+   issue: correctness and compaction both flag the same reinvented function;
+   two shards both flag a shared seam. Collapse beads that point at the same
+   `file:line` + concept into one (keep the highest priority, note all lenses
+   that flagged it, close the duplicates with a comment pointing at the survivor).
+2. **Rank into one digest** — emit a single ranked **Review Digest** for the wave
+   using the `/hs-sw-fresh-eyes` Issues Table format (one row per issue: handle,
+   priority, file:line, one-line summary, lens(es)). This one table is the triage
+   surface — for you now and for the human at Step 5c — not N separate reports.
+
+**Then, if the digest is non-empty:**
 1. Triage by priority: P0 must fix now, P1 should fix now, P2 can defer to next wave
 2. Assign P0 + P1 fixes to available workers (priority override)
 3. Bug fixes go through normal QA verification
@@ -456,9 +483,10 @@ Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-ux-wN", team_name=<t
 
 **If all clean:** review agents report clean and shut down. Proceed.
 
-**Note on scaling:** Each lens is one agent regardless of worker count. The
-lenses run in parallel with each other — scaling is horizontal across lenses,
-not vertical within a lens.
+**Note on scaling:** Lenses scale horizontally (more lens types) AND, per the
+sharding rule above, vertically within a lens when the diff is large — so review
+throughput grows with ticket volume instead of pinning at 3 agents. The deduped
+digest keeps the output a single triage surface no matter how many agents ran.
 
 ### Step 4 — QA smoke test
 
@@ -487,6 +515,8 @@ bd comments add <epic-id> "Wave N complete:
   - Quality gates: PASS
   - Deep review: N rounds (explore/cross), M issues fixed (or: not triggered)
   - Review flywheel: correctness (X issues), security (X), compaction (X), ux (X or N/A)
+  - Review sharding: <e.g. "1 agent/lens" or "correctness 2 shards: backend/+frontend/">
+  - Digest: X unique issues after dedup (Y raw findings collapsed)
   - Fixes applied: X P0, X P1, X P2 deferred
   - Smoke test: PASS
   - Moving to Wave N+1"
@@ -518,11 +548,16 @@ Wave 1 tickets verified (qa-passed):
 - beads-yyy: <title> — QA PASS
 - ...
 
-Review flywheel results: correctness(N), security(N), compaction(N)
+Review Digest (deduped across all lenses/shards — single triage surface):
+<the ranked Issues Table from Step 3: handle | priority | file:line | summary | lens>
 
-Please review these tickets. Run `bd show <id>` for details.
-Reply 'go' to advance to Wave 2, or flag issues."
+Please review. The digest is your fast path — start at the top. Run `bd show <id>`
+for any item's detail. Reply 'go' to advance to Wave 2, or flag issues."
 ```
+
+Hand the human the **deduped Review Digest from Step 3**, not a raw per-lens dump.
+At 10+ agents the un-consolidated stream is exactly where human review collapses —
+one ranked table they can triage top-down keeps the gate usable.
 
 **Do NOT assign Wave 2 tickets until the human replies.** This is the one
 blocking human gate in the sprint. Workers idle during this time — that's expected.
@@ -539,7 +574,8 @@ For subsequent waves, notify the user but continue:
 
 ```
 "Wave N complete. N tickets verified (qa-passed). Review at your pace — sprint continues.
-[ticket summary]"
+[ticket summary]
+Review Digest (deduped, ranked): [the Issues Table from Step 3]"
 ```
 
 The sprint does not wait. The human reviews and `bd close`s tickets whenever
