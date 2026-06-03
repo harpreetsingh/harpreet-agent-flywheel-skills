@@ -45,7 +45,9 @@ or restart. Skip to the Recovery section below.
 2. Read AGENTS.md + CLAUDE.md for project context and quality gates
 3. **Copy sprint plan** to `<feature_dir>/sprint-plan.md` (persistent copy alongside PLAN.md)
 4. **Create the lifecycle meta-bead** (see Sprint Lifecycle Bead below)
-5. **Write initial checkpoint** to `<feature_dir>/sprint-state.md` (see Sprint State Checkpoint below)
+5. **Write initial checkpoint** to `<feature_dir>/sprint-state.md`, and **start the
+   event log** `<feature_dir>/sprint-log.md` with an `init` line (see Sprint State
+   Checkpoint below). From here on, append to the log on every ticket event.
 6. **Create the team:** `TeamCreate("sprint-<date>-<project>")` — this makes you
    the system-level team-lead. All worker messages route to YOU.
 7. **Spawn workers** per the team topology in the sprint brief:
@@ -69,7 +71,13 @@ or restart. Skip to the Recovery section below.
 ### Recovery (from compaction/restart)
 
 0. **Load deferred orchestration tools:** `ToolSearch("select:TeamCreate,SendMessage,Agent")` — required before TeamCreate or Agent calls.
-1. Read `<feature_dir>/sprint-state.md` — this is your checkpoint
+1. Read `<feature_dir>/sprint-state.md` — your last full snapshot
+1b. **Replay the event-log tail:** read `<feature_dir>/sprint-log.md` and process
+   every entry stamped AFTER the snapshot's `Updated:` time. This recovers the
+   per-ticket events (assignments + rationale, QA-passes, blockers, reservations,
+   decisions) that happened since the snapshot — the difference between losing one
+   event and losing a whole wave. Reconstruct the file-reservation ledger from the
+   replayed `reserve`/`qa_pass` lines.
 2. Read `<feature_dir>/sprint-plan.md` — this is the full sprint brief
 3. Read AGENTS.md + CLAUDE.md
 4. `bd show <lifecycle-bead-id>` — read the lifecycle meta-bead (ID is in sprint-state.md)
@@ -136,7 +144,33 @@ where the sprint stands.
 
 ## Sprint State Checkpoint
 
-Write `<feature_dir>/sprint-state.md` at these moments:
+Recovery uses **two tiers**, so a compaction loses at most one event, not a whole wave:
+
+1. **`<feature_dir>/sprint-log.md` — continuous append-only event log.** Append ONE
+   line the moment each event happens. Never rewrite it; only append. This is cheap
+   (one `>>`) and is the fine-grained tail that recovery replays.
+2. **`<feature_dir>/sprint-state.md` — periodic full snapshot** (below). Written at
+   coarse milestones; the log fills the gaps between snapshots.
+
+### Event log — append per event
+
+Append to `sprint-log.md` on every one of these (use `date -u +%FT%TZ` for the stamp):
+```
+- <ISO ts> | assign      | <bead> → <worker> | why: <tier/domain/file-ownership reason>
+- <ISO ts> | qa_pass     | <bead> | files released: <paths>
+- <ISO ts> | qa_fail     | <bead> | reason: <one line>
+- <ISO ts> | blocker     | <bead> | <detail> → <bug-bead created>
+- <ISO ts> | reserve     | <bead> → <worker> | files: <paths>
+- <ISO ts> | wave_gate   | wave N | PASSED (or: blocked on <x>)
+- <ISO ts> | decision    | <the autonomous call + rationale>
+```
+This captures **why** (assignment rationale, deep-review findings, blockers) as it
+happens — so recovery restores judgment, not just status. The append after each
+**QA-pass** is the most important one (it's the per-ticket checkpoint).
+
+### Full snapshot — `sprint-state.md`
+
+Write the full snapshot at these moments:
 - After initialization (Phase 0 complete)
 - After each wave gate passes
 - At sprint close
@@ -191,8 +225,11 @@ Format:
 - <any autonomous decisions made, with rationale>
 ```
 
-**This file is the recovery point.** If context compacts, the Director reads this
-to know exactly where to resume. Keep it current.
+**These two files are the recovery point.** On compaction, read `sprint-state.md`
+for the last full snapshot, then **replay `sprint-log.md` entries with a timestamp
+after that snapshot's `Updated:` stamp** to reconstruct everything that happened
+since — in-flight assignments, QA results, blockers, file reservations, decisions.
+Keep the snapshot reasonably current; keep the log always-current (append per event).
 
 ## Phase 0 — Ticket Sufficiency Review
 
@@ -272,7 +309,7 @@ the opus-tier and architecturally critical tickets.
 | Worker reports done? | Check for stub scan in evidence → route to QA — never trust self-reported completion |
 | Worker reports blocked? | Good — better blocked than faking it. Create bug ticket, reassign or help unblock |
 | QA fails a ticket? | Send back to worker with QA feedback |
-| QA passes a ticket? | Add `qa-passed` label (`bd update <id> --add-label qa-passed`), **release the bead's file reservations**, assign next |
+| QA passes a ticket? | Add `qa-passed` label (`bd update <id> --add-label qa-passed`), **release the bead's file reservations**, **append a `qa_pass` line to `sprint-log.md`** (the per-ticket checkpoint), assign next |
 | All wave tickets QA-passed? | Run Wave Gate (quality gates → bug hunt → smoke test) |
 | Bug-hunter files tickets? | Assign fixes to workers, QA verify, re-gate |
 | Merge conflict? | Should be rare — the collision-free gate prevents most. If one occurs, a file was touched outside its bead's `## Files` set: resolve if trivial, and tighten the offending bead's declared scope |
@@ -572,8 +609,12 @@ Broadcast wave transition to all workers and QA agents.
 After every wave gate:
 
 1. **Update lifecycle bead:** mark all Wave N checkboxes `[x]` via `bd update <lifecycle-id> --notes="..."`
-2. **Write checkpoint:** update `<feature_dir>/sprint-state.md` with current wave progress,
-   worker assignments, QA queue, flywheel results. This is the recovery point.
+2. **Write the full snapshot:** update `<feature_dir>/sprint-state.md` with current wave
+   progress, worker assignments, QA queue, file reservations, flywheel results, and a
+   fresh `Updated:` timestamp. (The `sprint-log.md` event log has been appended
+   continuously throughout the wave — this snapshot just consolidates it so the next
+   replay window starts fresh.)
+3. **Append a `wave_gate` line to `sprint-log.md`.**
 
 ### Step 5c — Human Review
 
@@ -823,8 +864,17 @@ make the conservative choice, log it, and continue.
 - **This is a hard gate** — no Wave N+1 work starts before gate passes
 - Priority within a wave: unblocking tasks first → priority → tier match
 - Workers idle between waves while gate runs — this is expected and correct
+- **Keep waves to ~8–10 tickets max.** Beyond that, your context fills before the
+  gate and you risk a mid-wave compaction. If a wave would exceed ~10 tickets, split
+  it. (The `sprint-log.md` event log bounds the *loss* from a compaction to one event;
+  small waves bound the *frequency* of hitting one.)
 
 ## Ticket Assignment
+
+On each assignment, **append an `assign` line to `sprint-log.md`** capturing WHY this
+bead went to this worker (tier match, domain, file-ownership lane, TDD pairing). That
+rationale is exactly what's lost on a compaction and what makes recovery pick up
+intelligently instead of reshuffling.
 
 Assign via `SendMessage` with:
 - Full ticket context: "Run `bd show <bead-id>` — that is your specification"
