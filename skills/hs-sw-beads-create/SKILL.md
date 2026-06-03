@@ -72,6 +72,24 @@ granular set of beads with full dependency structure.
        These 4 steps map to `[[steps]]` in a future GasCity formula. When
        migrating to GasCity, `gc sling` enforces step order structurally —
        the checklist becomes redundant but the step definitions carry over.
+     - **Shared interface contract** — include ONLY if this bead produces or
+       consumes an interface another bead depends on: an API route, a type/model,
+       an event, or a DB schema. Add a `## Contract` block defining the EXACT
+       shape and copy it **byte-identical into both the producing bead and every
+       consuming bead**, naming the producer as source of truth:
+       ```
+       ## Contract: invites API  (source of truth: <producer bead id>)
+       POST /api/v1/invites
+       Request:  {email: str, role: MemberRole(admin|member|viewer), workspace_id: UUID}
+       Response 201: {id: UUID, status: 'pending'}
+       ```
+       Why: at 10+ parallel agents the producer and consumer are built by
+       different agents simultaneously. The self-sufficiency rule makes each bead
+       inline its own shapes — but if each *invents* the shape independently, they
+       diverge silently and integration breaks. One identical block, copied to
+       both, is the anti-drift anchor. (Right-sizing splits every cross-layer
+       feature into exactly these producer/consumer pairs — so most multi-bead
+       features need a contract.)
    - Appropriate type (epic/feature/task/bug) and priority (0-4)
    - Record the returned bead ID for dependency wiring
 4. **Phase 1b — Create TDD test beads** (see TDD section below):
@@ -80,6 +98,10 @@ granular set of beads with full dependency structure.
 5. **Phase 2 — Wire dependencies** (must be sequential, after all IDs exist):
    Overlay dependency structure with `bd dep add`.
    Wire TDD pairs: test bead BLOCKS impl bead (`bd dep add <impl-id> <test-id>`).
+   **For every producer→consumer edge that crosses an interface** (API, type,
+   event, schema): confirm the `## Contract` block is present and byte-identical
+   in both beads now that the producer ID exists to name as source of truth.
+   `bd update` the consumer if the producer's shape was finalized after creation.
 6. **Phase 3 — Verify**:
    - `bd graph --all` to check the structure visually
    - `bd ready` to confirm which beads are immediately actionable

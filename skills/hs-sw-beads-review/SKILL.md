@@ -128,15 +128,33 @@ be changed to make the system work better for users?
    For each flagged bead, propose the concrete split/merge (new titles + the
    dependency/contract edges) in the Issues Table.
 
-7. **Deep review** (for each bead, `bd show <id>`):
+7. **Contract consistency check** (cross-bead — the deepest anti-drift check):
+
+   Self-sufficiency (step 5) verifies each bead inlines its shapes; this verifies
+   that producer and consumer inlined the *same* shape. Divergent contracts across
+   parallel beads are Yegge's "specs drift silently" — the integration break that
+   no single-bead check can catch.
+
+   For each producer→consumer dependency edge that crosses an interface (API route,
+   type/model, event, DB schema):
+   - [ ] **Both beads carry a `## Contract` block** for the shared interface. If
+     the producer or a consumer is missing it → flag High, add it.
+   - [ ] **The blocks are byte-identical** — grep the literal signature/shape
+     string across the pair (`bd show <A>`, `bd show <B>`). Any difference in field
+     names, types, route, method, or response shape → flag High. The producer
+     (source of truth) wins; update the consumer to match.
+   - [ ] **Source of truth is named** — the contract block names the producing
+     bead ID, so there's no ambiguity about who owns the shape.
+
+8. **Deep review** (for each bead, `bd show <id>`):
    - Does this bead make sense? Is it necessary?
    - Are dependencies correct and complete?
    - Could beads be reordered (wrong priority) or removed (unnecessary)?
-8. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
-9. **Walk through issues one-at-a-time** with the user (see Output Protocol)
-10. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
+9. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+10. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+11. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
    after user approves each change
-11. **Final status table** after all issues are walked
+12. **Final status table** after all issues are walked
 
 ## Output Protocol
 
