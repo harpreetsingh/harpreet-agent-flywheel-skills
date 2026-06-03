@@ -144,15 +144,25 @@ Verify the worker's implementation makes tests pass and meets acceptance criteri
   includes a specific `Reuse check:` with named files/dirs searched. Vague
   claims like "I checked the codebase" = FAIL. If the worker built new code,
   verify their justification by grepping for the concept yourself.
-- [ ] **Step execution evidence** — if the bead has a `## Steps` section,
-  verify the worker's completion report includes evidence for EACH step:
+- [ ] **Every written step is verified executed** — read the bead's `## Steps`
+  section and enumerate EVERY step it lists. For each step, the worker's
+  completion report must show execution evidence. Check them 1:1 against the
+  bead — do not assume the canonical four; verify whatever steps the bead
+  actually wrote, including any custom or extra steps. **Any written step with
+  no execution evidence = FAIL.** A step is the unit of verification: if the
+  bead wrote it, QA confirms it happened.
+  Evidence standards for the standard steps:
   - **Search**: names tools used (Serena and/or grep), specific dirs/files
-    searched, states what was found or confirmed absent
+    searched, states what was found or confirmed absent. Re-grep the concept
+    yourself to confirm a claimed "absent" is true.
   - **Read**: names files read and key insight that shaped the approach
-  - **Implement**: names files changed
-  - **Verify**: shows actual test/lint output with pass/fail counts
-  Vague "searched the codebase" = FAIL. A step with no evidence = FAIL.
-  If the bead has no `## Steps` section, skip this check (pre-molecule bead).
+  - **Implement**: names files changed (cross-check against the actual diff)
+  - **Verify**: shows actual test/lint output with pass/fail counts (re-run if
+    in doubt)
+  Vague "searched the codebase" = FAIL.
+  If the bead has NO `## Steps` section, that bead is itself defective (every
+  bead must carry steps) — FAIL and flag it back to the Director for enrichment;
+  do not silently pass it.
 - [ ] **No scope creep** — worker didn't add features, refactors, or "improvements"
   beyond what the bead specified. This is a CRITICAL check for brownfield codebases.
   Review the diff carefully:

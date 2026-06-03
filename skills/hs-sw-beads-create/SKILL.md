@@ -46,8 +46,12 @@ granular set of beads with full dependency structure.
      - How it serves the overarching project goals
      - **Standard execution steps** — every bead gets a `## Steps` section
        in its description. This is the execution protocol — not more
-       acceptance criteria. Workers must provide evidence per step; QA
-       rejects completion reports with missing step evidence.
+       acceptance criteria. It is a **verification contract**: every step you
+       write here WILL be checked by QA for execution evidence, 1:1. The worker
+       must provide evidence per step, and QA fails any step that lacks it. So
+       write only steps you expect to be verified — and if a bead needs a step
+       beyond the standard four, add it here and it will be enforced like the
+       rest. A bead with no `## Steps` section is incomplete.
        ```
        ## Steps
        - [ ] **Search** — Three layers, in order:

@@ -643,11 +643,13 @@ tests with these patterns.
 ```
 Ticket: <bead-id>
 Files changed: <list>
-Step evidence:
+Step evidence (ONE line per step in the bead's ## Steps section — every written
+step, including any beyond the standard four; QA verifies these 1:1):
   Search: <Serena calls (find_symbol, search_symbols) + grep fallback>, found <what> / confirmed absent
   Read: <files read>, key insight: <what shaped the approach>
   Implement: <files changed>, approach: <why this approach>
   Verify: <test command + output summary>
+  <...any additional step the bead wrote>: <evidence it was executed>
 Reuse check: searched <what dirs/patterns>, found <what existing code>, reused <what> / built new because <why>
 Scope check: only files required by this ticket modified — YES
 Self-review: DONE — <N issues found and fixed, or "clean">
