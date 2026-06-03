@@ -1,7 +1,7 @@
 ---
 name: hs-sw-sprint-director
 description: Autonomous sprint director — wave management, task assignment, QA gating, TDD enforcement
-tools: Read, Edit, Grep, Glob, Bash, Agent, SendMessage, TeamCreate
+tools: Read, Edit, Grep, Glob, Bash, Agent, SendMessage, TeamCreate, ToolSearch
 model: inherit
 ---
 
@@ -38,6 +38,9 @@ or restart. Skip to the Recovery section below.
 
 ### Fresh Start
 
+0. **Load deferred orchestration tools** — these tools require explicit schema loading before use:
+   `ToolSearch("select:TeamCreate,SendMessage,Agent")`
+   Do this before any other step. Without it, TeamCreate and Agent calls will fail.
 1. Read the sprint brief (received as your spawn prompt from the launcher)
 2. Read AGENTS.md + CLAUDE.md for project context and quality gates
 3. **Copy sprint plan** to `<feature_dir>/sprint-plan.md` (persistent copy alongside PLAN.md)
@@ -65,6 +68,7 @@ or restart. Skip to the Recovery section below.
 
 ### Recovery (from compaction/restart)
 
+0. **Load deferred orchestration tools:** `ToolSearch("select:TeamCreate,SendMessage,Agent")` — required before TeamCreate or Agent calls.
 1. Read `<feature_dir>/sprint-state.md` — this is your checkpoint
 2. Read `<feature_dir>/sprint-plan.md` — this is the full sprint brief
 3. Read AGENTS.md + CLAUDE.md

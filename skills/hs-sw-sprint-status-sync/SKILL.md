@@ -104,9 +104,10 @@ print("Sprint: {} {}/{} done \u00b7 {}".format(bar, done, total, wave_parts))
 
 ### Step 4 — Ensure settings.json is wired
 
-- Check `.claude/settings.json` for `statusLine`
+- Check the project-level `.claude/settings.json` for `statusLine` (NOT `~/.claude/settings.json` — never touch global settings)
 - If missing: add it pointing to `<abs-path>/tmp/sprint-status.sh`
 - If present but pointing elsewhere: update to current path
+- If `statusLine` exists in `~/.claude/settings.json` for this sprint: warn the user to remove it manually (it will bleed into all sessions)
 
 ### Step 5 — Report
 

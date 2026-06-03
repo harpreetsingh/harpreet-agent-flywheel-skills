@@ -129,7 +129,7 @@ the Director would do.
 - Report to user: "Director launched in background. It will create the team, spawn N workers + QA agent(s)."
 - "You can walk away. Director manages everything. Return to check verification entry points."
 - "Beads will have the `qa-passed` label when sprint finishes — you close them after review with `bd close`."
-- "When the sprint is done, run `/sprint-status-clear` to remove the status bar. If it shows stale data, run `/sprint-status-sync` first."
+- "When the sprint is done, run `/sprint-close` to close all qa-passed beads and remove the status bar. Use `--dry-run` first to preview. If the bar shows stale data before then, run `/sprint-status-sync`."
 - **Do NOT create a team. Do NOT spawn workers. Do NOT stay in the loop.**
 
 ## Rules

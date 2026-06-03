@@ -132,12 +132,15 @@ Director (Opus) — coordinator only, never implements
   - Hardcode all ticket IDs and wave-to-ticket mapping (known from Step 4)
   - Script queries `bd show <all-ids> --json` in one call, formats output as:
     `Sprint: ■■▣□□ 2/5 done · W1:✓ W2:◐ W3:○`
-  - Use symbols: `■` closed, `▣` in_progress, `□` open; `✓` wave done, `◐` wave active, `○` wave pending
+  - **Completion = `qa-passed` label** (agents never close beads — humans do after review)
+  - Use symbols: `■` qa-passed (done), `▣` in_progress, `□` open; `✓` wave done, `◐` wave active, `○` wave pending
+  - Detection logic: `if "qa-passed" in item.get("labels", []) → "done"`, else use `item["status"]`
   - Falls back to `"Sprint: loading..."` if bd or python fails
-  - See `docs/features/sprint-status-line/statusupdate.md` for full script template
+  - See `docs/features/sprint-status-line/statusupdate.md` for full script template (copy it exactly)
   - Make executable: `chmod +x tmp/sprint-status.sh`
   - Verify it runs: `bash tmp/sprint-status.sh`
-- **Configure `.claude/settings.json`** with the status line:
+- **Configure the project-level `.claude/settings.json`** with the status line:
+  - This is `<project-root>/.claude/settings.json` — NOT `~/.claude/settings.json` (never write to global settings)
   - Read existing `.claude/settings.json` (or start from `{}` if missing)
   - Merge in: `"statusLine": {"type": "command", "command": "bash <abs-path>/tmp/sprint-status.sh"}`
   - Write back — preserve all other existing settings
