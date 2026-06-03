@@ -47,6 +47,8 @@ Type `/hs-` to see all skills. Type `/hs-sw-` to narrow to software. Type `/hs-m
 | `/hs-sw-docs-gen-int [version]` | Synthesize internal engineering docs for a release from all artifacts |
 | `/hs-sw-sprint-exec-plan` | Analyze beads into waves, label cost tiers, design team topology, generate ASCII diagram |
 | `/hs-sw-sprint-go` | Launch multi-agent sprint from execution plan — spawn director + workers |
+| `/hs-sw-sprint-retrospective [feature-dir]` | Turn a sprint's failure data into patterns + proposed Phase 0/AGENTS.md fixes — drives escape rate down |
+| `/hs-sw-flywheel-metrics` | Show the rework/escape-rate trend across sprints — the 20% scaling gate |
 | `/hs-sw-docs-gen-ext [source-dir]` | Extract external-facing docs from decision docs and PRDs |
 | `/hs-sw-shape [feature]` | Run a Shape Up shaping interview (5 rounds) and produce a pitch.md |
 | `/hs-sw-gh-issue [repo]` | File a GitHub issue with title, body, labels, and native type via GraphQL |

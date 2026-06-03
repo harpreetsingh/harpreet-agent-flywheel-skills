@@ -168,8 +168,10 @@ wave-gate, sprint-close, review, recovery).
 │  │  4. /docs-gen-ext → docs/site/features/, guides/, reference/    │    │
 │  │  5. /fresh-eyes <feature-dir> (code + plan + docs + beads)      │    │
 │  │  6. /land-the-plane → commit + push + PR                        │    │
-│  │  7. Lifecycle bead completed, final checkpoint written           │    │
-│  │  8. Summary to user → shutdown                                  │    │
+│  │  7. /sprint-retrospective → patterns → Phase 0/AGENTS.md fixes  │    │
+│  │     + /flywheel-metrics escape-rate trend (the 20% scale gate)  │    │
+│  │  8. Lifecycle bead completed, final checkpoint written           │    │
+│  │  9. Summary to user → shutdown                                  │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
 │                                                                         │
 │    OUTPUT: docs/features/<slug>/sprint-state.md (completed)             │
@@ -247,6 +249,8 @@ Beads (bd):
 | `/test-coverage` | Analyze test gaps, create beads for missing tests | Directory | Test beads with scenarios |
 | `/ux-polish` | Deep UI/UX + CLI UX scrutiny targeting Stripe-level quality | Component or dir | Fixes or beads for gaps |
 | `/land-the-plane` | Quality gates → bd preflight → logical commits → push → PR | — | Commits + PR URL |
+| `/sprint-retrospective` | Failure patterns → proposed Phase 0/AGENTS.md fixes (drives escape rate down) | Feature dir | `learnings.md` + proposed corrections |
+| `/flywheel-metrics` | Rework/escape-rate trend across sprints — the 20% scaling gate | `[--project] [--last N]` | Trend table + scale/hold verdict |
 | `/sprint-recover` | Triage failed sprint, reopen beads, create TDD pairs, repair deps | Feature dir or triage doc | Clean backlog ready for `/sprint-exec-plan` |
 | `/repeat` | Run any review skill in rounds until convergence | `[N] /<skill> [args]` | Converged artifact + summary table |
 | `/flywheel` | Render this lifecycle map, zoom into any phase | Phase name (optional) | `FLYWHEEL.md` + interactive display |

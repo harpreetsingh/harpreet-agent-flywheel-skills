@@ -122,6 +122,7 @@ bd update <lifecycle-id> --notes="
 - [ ] Sprint close: fresh-eyes
 - [ ] Sprint close: ux-polish (if frontend work)
 - [ ] Sprint close: land-the-plane
+- [ ] Sprint close: retrospective (patterns → proposed Phase 0/AGENTS.md fixes)
 - [ ] Sprint close: summary to user
 "
 ```
@@ -1064,10 +1065,15 @@ When a worker finishes a bead and more work exists:
    requests changes after the PR is open, create a fix-bead per failure with
    `--label=caught:pr`, assign + QA it like any other bead. These are the most
    expensive escape defects (caught last) — the escape-rate metric weights them.
-9. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
-10. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
-11. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, UX polish findings, known gaps
-12. `shutdown_request` all workers + QA → shutdown self
+9. **Retrospective (closes the learning loop)** — `/hs-sw-sprint-retrospective <feature-dir>`.
+   Reads this sprint's `[QA-FAIL]` comments + `caught:*` fix-beads + the escape-rate
+   line, extracts recurring failure patterns, and proposes Phase 0 / AGENTS.md
+   corrections for the human to approve. This is what drives the *next* sprint's
+   escape rate down — do not skip it, especially if the escape rate was >20%.
+10. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
+11. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
+12. Summary to user: beads status, QA results, escape rate + retrospective patterns, tests added, docs generated, fresh-eyes findings, UX polish findings, known gaps
+13. `shutdown_request` all workers + QA → shutdown self
 
 ## Bead Lifecycle (agents)
 
