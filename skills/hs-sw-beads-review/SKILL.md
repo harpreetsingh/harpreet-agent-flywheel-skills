@@ -146,15 +146,34 @@ be changed to make the system work better for users?
    - [ ] **Source of truth is named** — the contract block names the producing
      bead ID, so there's no ambiguity about who owns the shape.
 
-8. **Deep review** (for each bead, `bd show <id>`):
+8. **File-overlap graph** (collision-free scheduling input):
+
+   Two beads that touch the same file are *coupled* even when the dependency graph
+   says they're independent — that hidden coupling is where parallel agents collide.
+   Surface it now so exec-plan + the Director can schedule collision-free.
+
+   Read every bead's `## Files` section and build the overlap graph (edge = shared
+   path; be glob-aware — `src/auth/**` overlaps `src/auth/api.py`):
+   - [ ] **Every bead HAS a `## Files` section** — missing = flag, the bead is
+     unschedulable for collision detection. Add it.
+   - [ ] **Two beads both `create` the same path** → flag **High**: almost always a
+     decomposition error (two beads can't both own a new file). Merge or re-split.
+   - [ ] **Overlap with NO logical dependency edge** → flag: these can't safely run
+     in parallel. Propose one of: (a) **co-assign** — group them onto one worker
+     lane (the worker holds the shared file start-to-finish, zero collision); or
+     (b) **serialize** — add a dependency edge so one finishes before the other.
+   - [ ] **Emit the overlap graph** in the Issues Table / final output so
+     `/hs-sw-sprint-exec-plan` can consume it for parallel-width + lane assignment.
+
+9. **Deep review** (for each bead, `bd show <id>`):
    - Does this bead make sense? Is it necessary?
    - Are dependencies correct and complete?
    - Could beads be reordered (wrong priority) or removed (unnecessary)?
-9. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
-10. **Walk through issues one-at-a-time** with the user (see Output Protocol)
-11. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
+10. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+11. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+12. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
    after user approves each change
-12. **Final status table** after all issues are walked
+13. **Final status table** after all issues are walked
 
 ## Output Protocol
 

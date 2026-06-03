@@ -173,6 +173,13 @@ Format:
 - Pending: <bead-ids>
 - Failed (needs rework): <bead-ids>
 
+## File Reservations
+| path | bead | worker |
+|------|------|--------|
+| <path from the bead's ## Files> | <bead-id> | <worker> |
+<!-- live ledger; add on assignment, remove on QA-pass. Drives the collision-free
+     assignment gate. On recovery, rebuild from in-flight beads' ## Files sets. -->
+
 ## Deep Review Results
 - Wave 1: 3 rounds (explore, cross, explore), 5 issues fixed, converged
 
@@ -258,16 +265,51 @@ the opus-tier and architecturally critical tickets.
 
 | Decision | Action |
 |----------|--------|
-| Which ticket next? | Dependency order → priority → tier match |
+| Which ticket next? | Dependency-free → **file-collision-free** → priority → tier match (see File Reservations below) |
 | Quality gate fails? | Fix or reassign with error context |
 | Agent reports blocker? | Create bug ticket in beads, reassign |
 | Worker reports done? | Check for stub scan in evidence → route to QA — never trust self-reported completion |
 | Worker reports blocked? | Good — better blocked than faking it. Create bug ticket, reassign or help unblock |
 | QA fails a ticket? | Send back to worker with QA feedback |
-| QA passes a ticket? | Add `qa-passed` label (`bd update <id> --add-label qa-passed`), assign next |
+| QA passes a ticket? | Add `qa-passed` label (`bd update <id> --add-label qa-passed`), **release the bead's file reservations**, assign next |
 | All wave tickets QA-passed? | Run Wave Gate (quality gates → bug hunt → smoke test) |
 | Bug-hunter files tickets? | Assign fixes to workers, QA verify, re-gate |
-| Merge conflict? | Resolve if trivial, flag in beads comment if not |
+| Merge conflict? | Should be rare — the collision-free gate prevents most. If one occurs, a file was touched outside its bead's `## Files` set: resolve if trivial, and tighten the offending bead's declared scope |
+
+## File Reservations (static collision avoidance)
+
+Collisions are prevented **by construction**, not cleaned up after. Every bead
+declares a `## Files` section (its touched paths); exec-plan pre-grouped overlapping
+beads into co-assignment lanes. You maintain a live reservation ledger and never run
+two file-overlapping beads on different workers at once.
+
+**Ledger** — a section in `sprint-state.md`:
+```
+## File Reservations
+| path                        | bead          | worker   |
+|-----------------------------|---------------|----------|
+| src/auth/models.py          | beads-a1b2    | worker-1 |
+| supabase/migrations/041.sql | beads-a1b2    | worker-1 |
+```
+
+**Assignment gate** — before handing bead X to a free worker:
+1. Read X's `## Files` set (`bd show X`).
+2. Intersect (glob-aware) with every path currently in the ledger.
+3. **No overlap** → assign X, add its files to the ledger under that worker.
+4. **Overlaps a bead held by another worker** → do NOT run concurrently. Either
+   hold X until the conflicting bead is QA-passed (its files release), OR assign X
+   to the **same worker** that holds the conflicting bead (serialize in one agent →
+   zero collision). Prefer co-assignment when exec-plan already laned them together.
+
+**Release** — when a bead is QA-passed, remove its rows from the ledger so its
+files free up for waiting beads.
+
+**Undeclared touches** — if a worker's completion evidence shows a file NOT in the
+bead's `## Files` set, that's a scope-creep FAIL (QA already enforces this) AND a
+reservation miss: the static layer's accuracy depends on honest `## Files` sets, so
+bounce it back. (When agent_mail is later adopted, its runtime leases + pre-commit
+guard become the mechanical backstop for exactly these undeclared touches; until
+then, the QA scope check is the enforcement.)
 
 ## QA Routing
 

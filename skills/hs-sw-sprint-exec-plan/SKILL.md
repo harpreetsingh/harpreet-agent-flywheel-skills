@@ -92,8 +92,21 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
     `/hs-sw-beads-review` instead. Adding agents multiplies rework, not throughput.
   - No log yet (first sprint): default conservatively (≤5 workers) until you have
     a measured escape rate.
-- Agent count: total tickets / 4, capped at 5 workers (this cap may rise only when
-  the trailing escape rate is proven <20% — see the rework gate above)
+- **Cap worker count by TRUE parallel width, not ticket count.** Read the
+  file-overlap graph from `/hs-sw-beads-review` (built from each bead's `## Files`
+  section). For each wave, the real parallelism is the largest set of beads whose
+  file-sets are mutually **disjoint** — not the raw ticket count. Example: a wave
+  of 8 beads where 6 all touch `schema.py` has a true width of 3, so 3 workers, not 8.
+  `tickets / 4` is only the ceiling; the disjoint-set width is the actual number.
+- **Pre-compute co-assignment lanes.** Beads that overlap on files but have no
+  logical dependency get grouped into ONE worker's lane (that worker holds the
+  shared file start-to-finish → zero collision). Assign lanes in the topology so
+  the Director inherits a collision-free starting plan. Two beads that both
+  `create` the same path should have been merged in review — if one survives,
+  flag it back.
+- Agent count: min(true parallel width, tickets / 4, 5) — and the 5-cap may rise
+  only when the trailing escape rate is proven <20% (rework gate above). Collision
+  structure caps it from below; rework rate gates the ceiling.
 - Logical groupings: analyze domains (backend/frontend/infra or by label)
 - **Every domain with beads MUST have at least one worker** — this is the rule
   that prevents "backend done, frontend skipped"

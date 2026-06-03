@@ -58,6 +58,28 @@ granular set of beads with full dependency structure.
        or UI feature MUST also specify its CLI counterpart.
      - Relevant considerations and gotchas
      - How it serves the overarching project goals
+     - **Declared file set** — every bead gets a `## Files` section listing the
+       files it will touch, each with a verb. Predict it from the plan + a quick
+       Serena/grep pass for the concepts involved:
+       ```
+       ## Files
+       - src/auth/models.py            (modify)
+       - supabase/migrations/041_x.sql (create)
+       - src/auth/api.py               (modify)
+       ```
+       Verbs — `create` / `modify` / `delete`. This section does triple duty:
+       1. **Scope boundary** — it IS the bead's allowed scope; QA's scope-creep
+          check fails any worker that touches a file not listed here, which keeps
+          the declared set honest.
+       2. **Ordering / collision signal** — `/hs-sw-beads-review` builds a
+          file-overlap graph from these sections (two beads sharing a path are
+          coupled even with no logical dependency).
+       3. **Future reservation source** — when agent_mail (runtime file leases) is
+          adopted, the worker claims exactly this set; for now it drives static
+          collision-free scheduling in exec-plan + the Director.
+       Keep paths as SPECIFIC as possible (a glob like `src/auth/**` collides with
+       everything under it — only use globs when the bead genuinely owns the dir).
+       It's a prediction; the runtime backstop (later) catches what it misses.
      - **Standard execution steps** — every bead gets a `## Steps` section
        in its description. This is the execution protocol — not more
        acceptance criteria. It is a **verification contract**: every step you
