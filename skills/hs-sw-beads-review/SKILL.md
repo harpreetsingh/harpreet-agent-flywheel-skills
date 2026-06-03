@@ -104,18 +104,39 @@ be changed to make the system work better for users?
    **If a bead fails any check:** flag it as an issue. Propose the enriched
    description with the missing content inlined.
 
-6. **Deep review** (for each bead, `bd show <id>`):
+6. **Right-sizing check** (CRITICAL — mechanical, run for every bead):
+
+   A bead can pass every self-sufficiency check and still be the wrong SIZE — and
+   oversized beads are the #1 predictor of rework (one agent botches a sprawling
+   task). Self-sufficiency asks "has enough context"; this asks "is it the right
+   size to finish in one shot without rework." Use mechanical thresholds, not gut feel:
+
+   **Flag OVERSIZED → SPLIT if any of:**
+   - [ ] **Spans >1 architectural layer** — touches DB/schema AND API AND/OR UI in
+     one bead. Split into one bead per layer, with an interface contract between
+     them (the producer bead defines the signature/schema, the consumer quotes it).
+     Cross-layer beads are where parallel agents drift most.
+   - [ ] **>5 acceptance criteria** — it's doing too many things. Split by deliverable.
+   - [ ] **>~5 files in its file pointers** (or no file pointers but obviously broad
+     scope) — too large to hold in one agent's head. Split.
+   - [ ] **More than one distinct deliverable** in the title ("X and Y") — split on the "and".
+
+   **Flag TOO GRANULAR → MERGE if:**
+   - [ ] Single trivial AC, <30 min of work, no test pairing warranted — merge into
+     its natural sibling bead to avoid orchestration overhead.
+
+   For each flagged bead, propose the concrete split/merge (new titles + the
+   dependency/contract edges) in the Issues Table.
+
+7. **Deep review** (for each bead, `bd show <id>`):
    - Does this bead make sense? Is it necessary?
-   - Is the scope right? Too big = hard to execute. Too granular = overhead.
-     A good task is 1-4 hours of focused agent work.
    - Are dependencies correct and complete?
-   - Could beads be merged (overlapping scope), split (too large), reordered
-     (wrong priority), or removed (unnecessary)?
-7. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
-8. **Walk through issues one-at-a-time** with the user (see Output Protocol)
-9. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
+   - Could beads be reordered (wrong priority) or removed (unnecessary)?
+8. **Output the Issues Table** (see Output Protocol below) — do NOT elaborate yet
+9. **Walk through issues one-at-a-time** with the user (see Output Protocol)
+10. **Apply revisions** during walkthrough using `bd update` and `bd dep add`
    after user approves each change
-10. **Final status table** after all issues are walked
+11. **Final status table** after all issues are walked
 
 ## Output Protocol
 

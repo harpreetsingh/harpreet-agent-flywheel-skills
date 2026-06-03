@@ -149,6 +149,18 @@ After all beads are created, verify domain balance:
 
 - Every bead must be totally self-contained and self-documenting — a future
   agent picking up any bead should have full context without reading anything else.
+- **Right-size every bead — one bead, one layer, one deliverable.** Oversized
+  beads are the #1 cause of rework. Hard limits:
+  - A bead must NOT span more than one architectural layer. If a feature needs
+    DB/schema + API + UI, create a SEPARATE bead per layer and wire a dependency
+    between them (the producing layer's bead defines the interface; the consuming
+    layer's bead references it). Never one "build the whole feature" bead.
+  - ≤5 acceptance criteria per bead. More than that = split by deliverable.
+  - ≤~5 files in a bead's expected scope. Broader = split.
+  - One deliverable per title. A title with "X and Y" is two beads.
+  - Don't go too granular either: a <30-min trivial change with no test pairing
+    belongs merged into its sibling, not as its own bead.
+  `/hs-sw-beads-review` enforces these mechanically — create them right the first time.
 - Include the WHY, not just the WHAT.
 - Dependencies must be correct — nothing should be unblocked that has real prereqs,
   and nothing should be blocked unnecessarily.

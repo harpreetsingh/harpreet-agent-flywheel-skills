@@ -248,7 +248,10 @@ For each bead (`bd show <id>`):
 - **TDD pairing:** does this impl bead have a companion test bead?
 - **Stale:** does this bead reference things that have been renamed/removed?
 - **Duplicate:** is this bead's scope overlapping with another bead?
-- **Size:** is this bead too large (>4 hours of focused work) or too granular (<30 min)?
+- **Size (mechanical):** flag OVERSIZED if it spans >1 architectural layer
+  (DB+API+UI), has >5 acceptance criteria, names >~5 files, or bundles >1
+  deliverable ("X and Y") — propose a split. Flag TOO GRANULAR if it's a <30-min
+  trivial change with no test pairing — propose a merge.
 
 ---
 
