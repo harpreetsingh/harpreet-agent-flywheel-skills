@@ -544,7 +544,17 @@ For subsequent waves, notify the user but continue:
 
 The sprint does not wait. The human reviews and `bd close`s tickets whenever
 they want. If the human flags an issue on a `qa-passed` ticket, create a
-fix bead and prioritize it in the current wave.
+fix bead (`--label=caught:manual`) and prioritize it in the current wave.
+
+**Escape-defect labels (for the rework metric).** Any fix-bead created to repair
+work that was *already QA-passed* must carry one `caught:*` label so `/sprint-close`
+can compute the sprint's escape rate:
+- `caught:review` — filed by a wave-gate review agent (bug-hunter sets this itself)
+- `caught:manual` — you create it because the human rejected a qa-passed ticket
+- `caught:pr` — you create it because CI went red or a reviewer requested changes
+  after the PR was opened (see Sprint Completion)
+First-pass QA fails (worker fixes before the ticket ever reaches qa-passed) are
+NOT escape defects — they're TDD working, and they do not get a `caught:*` label.
 
 **Per-ticket notifications:** every time a ticket gets the `qa-passed` label, log it.
 The wave summary collects these so the human has a batch to review.
@@ -970,7 +980,10 @@ When a worker finishes a bead and more work exists:
    - `/hs-sw-ux-polish <frontend-dir>` — final UX sweep with separate desktop
      and mobile passes, 5-state matrix check, Stripe-level quality bar.
    - Skip if no frontend beads existed in this sprint.
-8. `/hs-sw-land-the-plane` to commit + push
+8. `/hs-sw-land-the-plane` to commit + push. If CI goes red or a PR reviewer
+   requests changes after the PR is open, create a fix-bead per failure with
+   `--label=caught:pr`, assign + QA it like any other bead. These are the most
+   expensive escape defects (caught last) — the escape-rate metric weights them.
 9. **Update lifecycle bead:** mark all sprint-close checkboxes `[x]`
 10. **Write final checkpoint:** update `<feature_dir>/sprint-state.md` with `current_phase: completed`
 11. Summary to user: beads status, QA results, tests added, docs generated, fresh-eyes findings, UX polish findings, known gaps

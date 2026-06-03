@@ -41,6 +41,17 @@ Checks:
 Summary: <1-2 sentences>
 ```
 
+**On every FAIL, also record a durable marker** so first-pass quality survives the
+session and `/sprint-close` can count it:
+```bash
+bd comment add <bead-id> "[QA-FAIL] <one-line reason>"
+```
+This is the *cheap* signal — a ticket that failed QA before ever reaching
+`qa-passed` is TDD working, not an escaped defect. It is reported separately
+(`qa_fails`) and is NOT part of the escape rate. Do not add a `caught:*` label
+for a first-pass QA fail; those labels are only for repair work filed *after* a
+ticket was already QA-passed.
+
 ## Checklists by Ticket Type
 
 ### Test Beads (Red Phase)

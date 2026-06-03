@@ -82,7 +82,18 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
 
 ### Step 7 — Team Topology
 
-- Agent count: total tickets / 4, capped at 5 workers
+- **Check the rework gate first.** Read the trailing escape rate from
+  `~/.claude/flywheel/sprint-metrics.jsonl` (or run `/hs-sw-flywheel-metrics`).
+  This is where agent allocation is decided — at plan time, not mid-sprint.
+  - Trailing escape rate **<20%** (Yegge's threshold): scoping is healthy — you
+    may allocate toward the upper end of the worker range.
+  - Trailing escape rate **≥20%**: your tickets are under-scoped. Do NOT increase
+    worker count — hold or reduce, and spend the effort on Phase 0 enrichment /
+    `/hs-sw-beads-review` instead. Adding agents multiplies rework, not throughput.
+  - No log yet (first sprint): default conservatively (≤5 workers) until you have
+    a measured escape rate.
+- Agent count: total tickets / 4, capped at 5 workers (this cap may rise only when
+  the trailing escape rate is proven <20% — see the rework gate above)
 - Logical groupings: analyze domains (backend/frontend/infra or by label)
 - **Every domain with beads MUST have at least one worker** — this is the rule
   that prevents "backend done, frontend skipped"

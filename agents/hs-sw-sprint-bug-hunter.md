@@ -261,8 +261,15 @@ For each issue found, create a bead:
 bd create --title="<Lens>: <concise description>" \
   --description="<detailed description>" \
   --type=bug \
-  --priority=<0-2>
+  --priority=<0-2> \
+  --label=caught:review
 ```
+
+**Always add `--label=caught:review`.** This bead is repair work for code that was
+already QA-passed — it's an *escaped defect*. The `caught:review` label is how
+`/sprint-close` counts the wave's escape rate (the metric that decides whether the
+next sprint can safely allocate more agents). A fix-bead without this label is
+invisible to the metric.
 
 Title format by lens:
 - CORRECTNESS: `"Bug: <description>"`
