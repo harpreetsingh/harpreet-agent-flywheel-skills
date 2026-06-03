@@ -80,11 +80,11 @@ wave-gate, sprint-close, review, recovery).
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ 3. DECOMPOSITION                                    Human + Claude     │
 │                                                                         │
-│    /beads-create docs/features/<slug>/PLAN.md                           │
+│    /beads-create docs/features/<slug>/PLAN.md  [--labels a,b]           │
 │         ↓                                                               │
-│    PLAN → epics → tasks + TDD test beads                                │
-│    Wires dependencies (test beads block impl beads)                     │
-│    CLI beads for every API/UI feature                                   │
+│    PLAN → epics → tasks + TDD test beads (--parent epic)                │
+│    Each bead: ## Files (scope) · ## Contract (interfaces) · ## Steps    │
+│    Wires dependencies (test beads block impl beads) + CLI beads         │
 │         ↓                                                               │
 │    /test-coverage <project-dir>                                         │
 │         ↓                                                               │
@@ -93,9 +93,10 @@ wave-gate, sprint-close, review, recovery).
 │         ↓                                                               │
 │    /beads-review                                                        │
 │         ↓                                                               │
-│    Structural review: orphans, cycles, TDD gaps, domain balance         │
+│    Structural · TDD gaps · domain balance · self-sufficiency ·          │
+│    RIGHT-SIZING (1 bead/1 layer) · CONTRACT consistency · FILE-OVERLAP  │
 │         ↓                                                               │
-│    OUTPUT: beads epic with all tickets wired                            │
+│    OUTPUT: beads epic wired + file-overlap graph (collision-free sched) │
 └────────────────────────────────────────┬────────────────────────────────┘
                                          ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -148,14 +149,15 @@ wave-gate, sprint-close, review, recovery).
 │  │  ║ 0c. UBS scan (security + null safety + async, mechanical) ║    │   │
 │  │  ║ 1. All tickets individually QA-passed                     ║    │   │
 │  │  ║ 2. Integration quality gates (ruff + pytest / lint + tsc) ║    │   │
-│  │  ║ 3. Review flywheel (3-4 ephemeral agents in parallel):    ║    │   │
+│  │  ║ 3. Review flywheel — lenses SHARDED by diff volume:       ║    │   │
 │  │  ║    • CORRECTNESS — bugs, logic errors, stubs, fakes      ║    │   │
 │  │  ║    • SECURITY — arch-level: trust boundaries, auth flows  ║    │   │
-│  │  ║      (UBS already caught pattern-level security issues)    ║    │   │
 │  │  ║    • COMPACTION — reinvention, UX drift, dead code, bloat   ║    │   │
 │  │  ║    • UX (frontend waves only) — patterns, a11y, states    ║    │   │
+│  │  ║    → findings DEDUPED into one ranked Review Digest        ║    │   │
 │  │  ║ 4. QA smoke test                                          ║    │   │
-│  │  ║ 5. Checkpoint written, lifecycle bead updated              ║    │   │
+│  │  ║ 5. Snapshot (sprint-state.md) + lifecycle bead updated    ║    │   │
+│  │  ║    (event log sprint-log.md appended per ticket throughout)║    │   │
 │  │  ║ 6. Human review (Wave 1: BLOCKING / Wave 2+: async)      ║    │   │
 │  │  ╚══════════════════════════════════════════════════════════╝    │   │
 │  │       ↓                                                           │   │
@@ -206,7 +208,9 @@ docs/features/<slug>/
 ├── planning-context/     ← /shape (evidence bag: research, competitor analysis)
 ├── PLAN.md               ← /plan-draft → /plan-review ×4-5
 ├── sprint-plan.md        ← /sprint-exec-plan (persistent copy)
-├── sprint-state.md       ← Director (checkpoint, updated per wave gate)
+├── sprint-state.md       ← Director (full snapshot, per wave gate)
+├── sprint-log.md         ← Director (append-only event log, per ticket event)
+├── learnings.md          ← /sprint-retrospective (failure patterns + fixes)
 ├── architecture.md       ← /docs-gen-int (sprint close)
 ├── api.md                ← /docs-gen-int
 ├── cli.md                ← /docs-gen-int
@@ -225,7 +229,10 @@ Beads (bd):
 ├── Sprint Lifecycle bead ← Director (meta-ticket tracking sprint checklist)
 ├── Test beads            ← /beads-create (red phase — written first, must fail)
 ├── Impl beads            ← /beads-create (green phase — make tests pass)
-└── Bug/review beads      ← bug-hunter (filed during review flywheel)
+└── Fix/review beads      ← bug-hunter (caught:review), Director (caught:manual/pr)
+
+Global (cross-project):
+└── ~/.claude/flywheel/sprint-metrics.jsonl  ← /sprint-close (escape-rate trend; 20% gate)
 ```
 
 ---
@@ -239,8 +246,9 @@ Beads (bd):
 | `/shape` | 5-round Shape Up interview: problem, appetite, solution, rabbit holes, no-gos | GitHub Issue # | `pitch.md`, `planning-context/` |
 | `/plan-draft` | Synthesize pitch + research into structured PLAN with diagrams and CLI spec | Feature dir or files | `PLAN.md` |
 | `/plan-review` | One round of deep review with severity-rated proposals and diffs | `PLAN.md` path | Approved edits to PLAN |
-| `/beads-create` | Decompose PLAN into epics, tasks, and TDD test beads with dependencies | `PLAN.md` path | Beads epic with wired tickets |
-| `/beads-review` | Structural review: orphans, cycles, TDD gaps, domain balance, scope | — | Fixes applied to beads |
+| `/beads-create` | Decompose PLAN into epics + TDD beads with deps, `## Files`, `## Contract`, `## Steps` | `PLAN.md` `[--labels]` | Beads epic with wired tickets |
+| `/beads-review` | Self-sufficiency, right-sizing, contract consistency, file-overlap graph | — | Fixes applied to beads |
+| `/beads-label` | Add labels to an epic and all its tickets (or explicit IDs) | `<epic-id> --labels` | Labeled bead set |
 | `/sprint-exec-plan` | Wave analysis, model tiers, team topology, ASCII deployment diagram | Beads backlog | `sprint-exec-plan.md`, `sprint-plan.md` |
 | `/sprint-go` | Launch sprint: spawn Director in background. `--dry-run` to preview. | Sprint plan | Director agent (autonomous) |
 | `/docs-gen-int` | Synthesize internal engineering docs from sprint artifacts | Feature dir | `architecture.md`, `api.md`, `cli.md`, `data-model.md`, `what-shipped.md`, `lessons.md` |
@@ -249,6 +257,7 @@ Beads (bd):
 | `/test-coverage` | Analyze test gaps, create beads for missing tests | Directory | Test beads with scenarios |
 | `/ux-polish` | Deep UI/UX + CLI UX scrutiny targeting Stripe-level quality | Component or dir | Fixes or beads for gaps |
 | `/land-the-plane` | Quality gates → bd preflight → logical commits → push → PR | — | Commits + PR URL |
+| `/sprint-close` | Close qa-passed beads, log escape rate, remove status bar, clean tmp | `[--dry-run]` | Closed sprint + metrics line |
 | `/sprint-retrospective` | Failure patterns → proposed Phase 0/AGENTS.md fixes (drives escape rate down) | Feature dir | `learnings.md` + proposed corrections |
 | `/flywheel-metrics` | Rework/escape-rate trend across sprints — the 20% scaling gate | `[--project] [--last N]` | Trend table + scale/hold verdict |
 | `/sprint-recover` | Triage failed sprint, reopen beads, create TDD pairs, repair deps | Feature dir or triage doc | Clean backlog ready for `/sprint-exec-plan` |
@@ -301,4 +310,4 @@ No `development` branch. No direct pushes to `main` or `production`.
 
 ---
 
-Generated by `/flywheel` on 2026-04-21. Run `/flywheel` for interactive phase zoom.
+Generated by `/flywheel` on 2026-06-02. Run `/flywheel` for interactive phase zoom.

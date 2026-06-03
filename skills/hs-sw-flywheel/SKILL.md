@@ -41,6 +41,10 @@ or just remembering what comes next.
    - `skills/hs-sw-ux-polish/`
    - `skills/hs-sw-land-the-plane/`
    - `skills/hs-sw-sprint-recover/`
+   - `skills/hs-sw-sprint-close/`
+   - `skills/hs-sw-sprint-retrospective/`
+   - `skills/hs-sw-flywheel-metrics/`
+   - `skills/hs-sw-beads-label/`
 
    Find these relative to the claude-workflow-skills repo. Check common locations:
    - `~/.claude/skills/` (symlinks)
@@ -160,17 +164,20 @@ the full picture.
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ 3. DECOMPOSITION                                    Human + Claude     │
 │                                                                         │
-│    /beads-create docs/projects/features/<slug>/PLAN.md                  │
+│    /beads-create docs/projects/features/<slug>/PLAN.md  [--labels a,b]  │
 │         ↓                                                               │
-│    PLAN → epics → tasks + TDD test beads                                │
-│    Wires dependencies (test beads block impl beads)                     │
-│    CLI beads for every API/UI feature                                   │
+│    PLAN → epics → tasks + TDD test beads (--parent epic)                │
+│    Each bead carries: ## Files (declared scope), ## Contract (shared    │
+│      interfaces), ## Steps (Search→Read→Implement→Verify)               │
+│    Wires dependencies (test beads block impl beads) + CLI beads         │
 │         ↓                                                               │
 │    /beads-review                                                        │
 │         ↓                                                               │
-│    Structural review: orphans, cycles, TDD gaps, domain balance         │
+│    Structural · TDD gaps · domain balance · self-sufficiency ·          │
+│      RIGHT-SIZING (1 bead/1 layer) · CONTRACT consistency ·             │
+│      FILE-OVERLAP graph (collision-free scheduling input)               │
 │         ↓                                                               │
-│    OUTPUT: beads epic with all tickets wired                            │
+│    OUTPUT: beads epic, all tickets wired, file-overlap graph            │
 └────────────────────────────────────────┬────────────────────────────────┘
                                          ↓
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -180,9 +187,10 @@ the full picture.
 │         ↓                                                               │
 │    Inventory → TDD pairing → wave analysis → model tiers (opus/sonnet)  │
 │    → domain balance → team topology → ASCII diagram                     │
+│    Worker count gated by: escape rate <20% (the scaling gate) AND       │
+│      true parallel width (largest file-disjoint set per wave)           │
 │         ↓                                                               │
-│    OUTPUT: tmp/sprint-exec-plan.md                                      │
-│            docs/projects/features/<slug>/sprint-plan.md (persistent)    │
+│    OUTPUT: tmp/sprint-exec-plan.md, sprint-plan.md, tmp/sprint-status.sh│
 │                                                                         │
 │    Optional: /sprint-go --dry-run  (preview without launching)          │
 └────────────────────────────────────────┬────────────────────────────────┘
@@ -202,38 +210,41 @@ the full picture.
 │         ↓                                                               │
 │  ┌─── Wave N (repeats per wave) ────────────────────────────────────┐   │
 │  │                                                                   │   │
-│  │  ASSIGN: test beads → Worker A (red phase)                        │   │
-│  │       ↓                                                           │   │
-│  │  QA VERIFY: tests fail for right reasons, no impl code            │   │
+│  │  ASSIGN (gate: dep-free → COLLISION-FREE → priority → tier;       │   │
+│  │    file ledger in sprint-state.md): test beads → Worker A (red)   │   │
+│  │       ↓   [append assign/qa_pass/… to sprint-log.md per event]    │   │
+│  │  QA VERIFY: tests fail for right reasons; every ## Step verified  │   │
 │  │       ↓                                                           │   │
 │  │  ASSIGN: impl beads → Worker B (green phase, DIFFERENT worker)    │   │
 │  │       ↓                                                           │   │
-│  │  QA VERIFY: tests pass, acceptance criteria met                   │   │
+│  │  QA VERIFY: tests pass, ACs met, no mocks, in-scope (## Files)    │   │
 │  │       ↓                                                           │   │
 │  │  ╔═══ WAVE GATE (hard — blocks Wave N+1) ═══════════════════╗    │   │
 │  │  ║ 1. All tickets individually QA-passed                     ║    │   │
 │  │  ║ 2. Integration quality gates (ruff + pytest / lint + tsc) ║    │   │
-│  │  ║ 3. Review flywheel (3-4 ephemeral agents in parallel):    ║    │   │
-│  │  ║    • CORRECTNESS — bugs, logic errors, race conditions    ║    │   │
-│  │  ║    • SECURITY — OWASP top 10, injection, auth bypass      ║    │   │
-│  │  ║    • COMPACTION — dead code, over-engineering, bloat       ║    │   │
-│  │  ║    • UX (frontend waves only) — patterns, a11y, states    ║    │   │
+│  │  ║ 3. Review flywheel (CORRECTNESS/SECURITY/COMPACTION/UX),   ║    │   │
+│  │  ║    SHARDED by diff volume → deduped Review Digest         ║    │   │
 │  │  ║ 4. QA smoke test                                          ║    │   │
-│  │  ║ 5. Checkpoint written, lifecycle bead updated              ║    │   │
+│  │  ║ 5. Snapshot written (sprint-state.md), lifecycle updated  ║    │   │
 │  │  ║ 6. Human review (Wave 1: BLOCKING / Wave 2+: async)      ║    │   │
 │  │  ╚══════════════════════════════════════════════════════════╝    │   │
 │  │       ↓                                                           │   │
 │  └── next wave ─────────────────────────────────────────────────────┘   │
 │         ↓                                                               │
 │  ┌─── Sprint Close ────────────────────────────────────────────────┐    │
-│  │  1. Final quality gates                                         │    │
-│  │  2. /docs-gen-int → architecture.md, api.md, cli.md, etc.      │    │
-│  │  3. /docs-gen-ext → docs/areas/site/features/, guides/, ref/   │    │
-│  │  4. /fresh-eyes <feature-dir> (code + plan + docs + beads)      │    │
-│  │  5. /land-the-plane → commit + push                             │    │
-│  │  6. Lifecycle bead completed, final checkpoint written           │    │
-│  │  7. Summary to user → shutdown                                  │    │
+│  │  1. Final quality gates + UBS full-project scan                 │    │
+│  │  2. /test-coverage → verify real coverage (no mocks)           │    │
+│  │  3. /docs-gen-int → architecture.md, api.md, cli.md, etc.      │    │
+│  │  4. /docs-gen-ext → docs/areas/site/features/, guides/, ref/   │    │
+│  │  5. /fresh-eyes <feature-dir> (code + plan + docs + beads)      │    │
+│  │  6. /land-the-plane → commit + push                             │    │
+│  │  7. /sprint-retrospective → patterns → Phase 0/AGENTS.md fixes  │    │
+│  │     (+ /flywheel-metrics: escape-rate trend, the 20% gate)      │    │
+│  │  8. Lifecycle bead completed, final checkpoint written           │    │
+│  │  9. Summary to user → shutdown                                  │    │
 │  └─────────────────────────────────────────────────────────────────┘    │
+│  (post-sprint, human-run: /sprint-close — close beads, log escape       │
+│   rate, remove status bar, clean tmp)                                    │
 │                                                                         │
 │    OUTPUT: docs/projects/features/<slug>/sprint-state.md (completed)    │
 │            docs/projects/features/<slug>/architecture.md, api.md, ...   │
@@ -275,13 +286,14 @@ Read the relevant skill/agent files and include:
 |----------|-------|------------------|
 | `shaping` | Shaping interview | /shape |
 | `planning` | Plan draft + review | /plan-draft, /plan-review |
-| `decomposition` | Beads creation + review | /beads-create, /beads-review |
-| `sprint-planning` | Execution plan | /sprint-exec-plan |
-| `sprint` | Full sprint execution | /sprint-go, Director, QA, workers |
-| `wave-gate` | Wave gate protocol | Director, QA, bug-hunter (4 lenses) |
-| `sprint-close` | Sprint close sequence | docs-gen-int/ext, fresh-eyes, land-the-plane |
+| `decomposition` | Beads creation + review | /beads-create, /beads-review (right-sizing, contracts, file-overlap) |
+| `sprint-planning` | Execution plan | /sprint-exec-plan (escape-rate + parallel-width gating) |
+| `sprint` | Full sprint execution | /sprint-go, Director (collision-free assign, event log), QA, workers |
+| `wave-gate` | Wave gate protocol | Director, QA, bug-hunter (sharded lenses → Review Digest) |
+| `sprint-close` | Sprint close sequence | docs-gen-int/ext, fresh-eyes, land-the-plane, /sprint-close |
+| `learning` | Metrics + retrospective | /flywheel-metrics (20% gate), /sprint-retrospective |
 | `review` | Human review | Manual (no skills) |
-| `recovery` | Sprint recovery | /sprint-recover |
+| `recovery` | Sprint recovery | /sprint-recover (compaction: replay sprint-log.md) |
 
 ---
 
@@ -293,7 +305,9 @@ docs/projects/features/<slug>/          ← active work (during feature)
 ├── planning-context/     ← /shape (evidence bag)
 ├── PLAN.md               ← /plan-draft → /plan-review ×4-5
 ├── sprint-plan.md        ← /sprint-exec-plan (persistent copy)
-├── sprint-state.md       ← Director (updated per wave gate)
+├── sprint-state.md       ← Director (full snapshot, per wave gate)
+├── sprint-log.md         ← Director (append-only event log, per ticket event)
+├── learnings.md          ← /sprint-retrospective (failure patterns + fixes)
 ├── architecture.md       ← /docs-gen-int (sprint close)
 ├── api.md                ← /docs-gen-int
 ├── cli.md                ← /docs-gen-int
@@ -315,7 +329,11 @@ Beads (bd):
 ├── Sprint Lifecycle bead ← Director (meta-ticket, checklist)
 ├── Test beads            ← /beads-create (red phase)
 ├── Impl beads            ← /beads-create (green phase)
-└── Bug/review beads      ← bug-hunter (filed during flywheel)
+└── Bug/review beads      ← bug-hunter (caught:review), Director (caught:manual/pr)
+
+Global (cross-project):
+└── ~/.claude/flywheel/sprint-metrics.jsonl  ← /sprint-close appends one line/sprint
+                                               (escape-rate trend; the 20% scaling gate)
 ```
 
 ---
