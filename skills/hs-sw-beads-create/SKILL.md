@@ -212,6 +212,17 @@ After all beads are created, verify domain balance:
 
 - Every bead must be totally self-contained and self-documenting — a future
   agent picking up any bead should have full context without reading anything else.
+- **Negative-path ACs for always-on components.** Any bead that delivers a loop,
+  worker, lifespan task, or other always-on/runtime component MUST carry explicit
+  acceptance criteria (each with a test) for: (a) required config ABSENT — degrade
+  gracefully, log once, never spam per-tick; (b) failure BEFORE task/lease creation —
+  no leaked permits/slots, the claimed item reaches a terminal state; (c) connection
+  drop — reconnect, don't wedge. Happy-path + transient-retry ACs alone are how
+  always-on escapes ship (Phase B retro: 3 of 3 missing-error-handling escapes).
+- **Interface-wiring beads quote the real callee.** A bead that wires a caller to
+  an EXISTING callee (service/resolver/client/cursor) must inline the callee's
+  ACTUAL signature (read the source — do not guess) and require a contract test
+  importing the real symbol. Assumed interfaces are the top contract-drift escape.
 - **Right-size every bead — one bead, one layer, one deliverable.** Oversized
   beads are the #1 cause of rework. Hard limits:
   - A bead must NOT span more than one architectural layer. If a feature needs

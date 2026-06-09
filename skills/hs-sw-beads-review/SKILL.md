@@ -100,6 +100,17 @@ be changed to make the system work better for users?
      "it works" or "handles errors" — rewrite it with the specific observable
      (endpoint returns 200 with `{id, status}`, component renders role dropdown
      with 3 options, `pytest tests/test_invite.py` passes).
+   - [ ] **Negative-path ACs (always-on components)** — if the bead delivers a
+     loop, worker, lifespan task, or other always-on/runtime component: it must
+     carry ACs (each testable) for (a) required config absent → degrade gracefully,
+     log once, no per-tick spam; (b) failure before task/lease creation → no leaked
+     permits, claimed item reaches a terminal state; (c) connection drop → reconnect.
+     Happy-path-only hardening beads are a known escape source — flag High.
+   - [ ] **Real-callee signature (interface-wiring beads)** — if the bead wires a
+     caller to an EXISTING callee (service/resolver/client/cursor): the bead must
+     inline the callee's ACTUAL signature (verified against source, not assumed)
+     and require a contract test importing the real symbol. An assumed interface
+     (async-vs-sync, dict-vs-tuple cursor) is the top contract-drift escape — flag High.
 
    **If a bead fails any check:** flag it as an issue. Propose the enriched
    description with the missing content inlined.
