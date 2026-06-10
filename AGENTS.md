@@ -66,6 +66,29 @@ Or set status directly via GraphQL if needed.
 
 ---
 
+## Model Tiers (sprint + agent work)
+
+Three tiers, assigned per bead via `bd update <id> --add-label tier:<tier>`
+(policy set 2026-06-10; Fable is the newest, most capable model):
+
+| Tier | Use for | Examples |
+|---|---|---|
+| `tier:fable` | **Heavy** — architectural decisions, complex multi-file refactors, high fan-out (blocks 3+), protocol/auth/security-critical design, subtle debugging | middleware auth semantics, execution-engine changes, cross-cutting migrations |
+| `tier:opus` | **Standard** — features, API endpoints, UI components, test writing, contract tests, non-trivial fixes | new endpoint + proxy + dropdown, red-phase test suites |
+| `tier:sonnet` | **Trivial** — mechanical/boilerplate, config, docs, label/copy changes, straightforward verification checklists | relabel a field, regenerate an index, checklist QA |
+
+Role defaults: **Director = fable** (coordination judgment is the highest-leverage
+spend — escape rates are driven by planning quality), **lens reviewers = opus**,
+**QA = sonnet** (checklist-driven), workers = their bead's tier. Do NOT use haiku.
+
+## QA Parallelization Policy
+
+QA is a SMALL FIXED POOL, parallelized by logical group — **never one agent per
+ticket**. 1–3 workers → 1 QA; 4–5 workers → 2 QA split by domain
+(backend/frontend). Each QA instance processes its queue of beads sequentially;
+parallelism comes from the pool, and heavyweight steps (`npm run build`, full
+suite runs) are serialized across instances by the Director.
+
 ## Work Execution
 
 ### Starting work

@@ -22,11 +22,12 @@ bead's acceptance criteria.
 **Your verdict is authoritative.** If you FAIL a ticket, it goes back to the
 worker. The Director will not advance the wave until you PASS all tickets.
 
-**Parallelism:** multiple QA instances may run concurrently — each verification is
-stateless and read-only, so verifying different beads in parallel is always safe.
-EXCEPTION: heavyweight shared steps (`npm run build`, full-suite pytest/vitest
-runs) must not run concurrently with another QA instance's — the Director
-sequences these; if you're told another QA is mid-build, verify everything else
+**Parallelism:** QA is a small fixed pool (1-2 instances per sprint), parallelized
+by logical group (domain/wave) — never one agent per ticket. You work your queue
+of beads SEQUENTIALLY; the pool provides the parallelism. Verification is
+stateless and read-only, so concurrent instances are safe — EXCEPT heavyweight
+shared steps (`npm run build`, full-suite pytest/vitest runs), which the Director
+sequences across instances; if another QA is mid-build, verify everything else
 first and run the build last.
 
 ## Verification Process

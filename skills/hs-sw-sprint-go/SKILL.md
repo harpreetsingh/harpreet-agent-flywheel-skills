@@ -48,7 +48,7 @@ the Director would do.
 ## Sprint Dry-Run: <feature-name>
 
 ### Team
-- Director (opus) — coordinator
+- Director (fable) — coordinator
 - Worker-1 (backend): T-01, T-04, T-07
 - Worker-2 (frontend): T-02, T-05, T-08
 - QA-1: all tickets
@@ -79,7 +79,7 @@ the Director would do.
 6. Lifecycle bead marked complete, final checkpoint written
 
 ### Summary
-- Total agents: N workers + N QA + ~N×3 review agents (ephemeral)
+- Total agents: 1 director + N workers + 1-2 QA + 3-4 standing lens reviewers
 - Total waves: N
 - Estimated tickets: N (N impl + N test)
 - Artifacts produced: sprint-plan.md, sprint-state.md, architecture.md, api.md,
@@ -128,8 +128,8 @@ the Director would do.
 The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate,Agent,SendMessage")`.
 
 1. **Create the team:** `TeamCreate("sprint-<date>-<project>")`
-2. **Spawn the Director** into the team:
-   `Agent(subagent_type="hs-sw-sprint-director", name="director", team_name=<team>, run_in_background=true, mode=<sprint autonomy mode>)`
+2. **Spawn the Director** into the team (model: **fable** — see AGENTS.md Model Tiers):
+   `Agent(subagent_type="hs-sw-sprint-director", name="director", team_name=<team>, run_in_background=true, model="fable", mode=<sprint autonomy mode>)`
    Its prompt is the FULL sprint brief:
    - Complete `tmp/sprint-exec-plan.md` content
    - **`feature_dir`** path — Director writes sprint-state.md checkpoints there
@@ -138,20 +138,22 @@ The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate
    - Explicit statement: "You coordinate via SendMessage ONLY. You cannot and must
      not spawn agents. Your roster is fixed; if it proves insufficient, write the
      gap to sprint-state.md and message the human as last resort."
-3. **Spawn workers** per the exec-plan topology (names, models from tier labels):
+3. **Spawn workers** per the exec-plan topology — model from the lane's highest
+   tier label (`tier:fable`→"fable", `tier:opus`→"opus", `tier:sonnet`→"sonnet"):
    `Agent(subagent_type="general-purpose", name="worker-N", team_name=<team>, run_in_background=true, model=<tier>, mode=<sprint autonomy mode>)`
    Worker prompt: lane assignment + "Your manager is `director`. Route ALL
    questions, blockers, and completion reports to it via SendMessage. Never
    address the human. Wait for assignments from director; do not self-start."
-4. **Spawn QA agent(s)** (1 per 1-3 workers; 2 split by domain for 4-5):
-   `Agent(subagent_type="hs-sw-sprint-qa", name="qa-N", team_name=<team>, run_in_background=true, mode=<sprint autonomy mode>)`
-   Multiple QA instances verify different beads CONCURRENTLY (verification is
-   stateless and read-only) — but heavyweight steps (`npm run build`, full suite
-   runs) must be serialized across QA instances; Director sequences those.
+4. **Spawn QA agent(s)** — a SMALL FIXED POOL, never one per ticket (1 per 1-3
+   workers; 2 split by domain for 4-5; model "sonnet"):
+   `Agent(subagent_type="hs-sw-sprint-qa", name="qa-N", team_name=<team>, run_in_background=true, model="sonnet", mode=<sprint autonomy mode>)`
+   Each QA instance works its queue of beads sequentially; the pool gives the
+   parallelism. Heavyweight steps (`npm run build`, full suite runs) are
+   serialized across instances by the Director.
 5. **Spawn standing reviewers** (replaces Director-spawned ephemeral reviewers —
    the Director cannot spawn): one `hs-sw-sprint-bug-hunter` per lens used by the
-   plan (correctness, security, compaction, + ux for frontend-heavy sprints):
-   `Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-<lens>", team_name=<team>, run_in_background=true, mode=<sprint autonomy mode>)`
+   plan (correctness, security, compaction, + ux for frontend-heavy sprints; model "opus"):
+   `Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-<lens>", team_name=<team>, run_in_background=true, model="opus", mode=<sprint autonomy mode>)`
    Reviewer prompt: "You hold the <LENS> lens for the whole sprint. Idle until
    `director` messages you a wave scope (diff range + context); review ONLY that
    scope, file beads per your definition (ALWAYS `--label=caught:review`), report

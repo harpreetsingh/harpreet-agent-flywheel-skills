@@ -63,12 +63,16 @@ Before wave analysis, verify TDD structure:
 
 ### Step 5 — Model Tier Labeling
 
-Apply tiers via `bd update <id> --add-label tier:<tier>`:
+Apply tiers via `bd update <id> --add-label tier:<tier>` (three tiers, 2026-06-10):
 
-- `opus`: architectural decisions, complex multi-file refactors, high fan-out (blocks 3+), protocol design, anything moderately complex or above
-- `sonnet`: standard features, API endpoints, UI components, config, boilerplate, test writing, docs, mechanical tasks
+- `fable`: HEAVY — architectural decisions, complex multi-file refactors, high
+  fan-out (blocks 3+), protocol/auth/security-critical design, subtle debugging
+- `opus`: STANDARD — features, API endpoints, UI components, test writing,
+  contract tests, non-trivial fixes
+- `sonnet`: TRIVIAL — mechanical/boilerplate, config, docs, copy/label changes
 
-Do NOT use `haiku` tier. All sprint work uses either opus or sonnet.
+Do NOT use `haiku` tier. See AGENTS.md "Model Tiers" for role defaults
+(Director=fable, reviewers=opus, QA=sonnet).
 
 Respect existing ticket labels — don't overwrite user-assigned ones.
 
@@ -125,10 +129,12 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
 - **Every domain with beads MUST have at least one worker** — this is the rule
   that prevents "backend done, frontend skipped"
 - Manager layer: only if 4+ workers; otherwise Director manages directly
-- Director: always one, always opus-tier
-- QA agent(s): 1 per 1-3 workers, 2 (split by domain) for 4-5 — they verify
-  different beads CONCURRENTLY (stateless, read-only; heavyweight steps like
-  `npm run build` serialized by the Director). Do not count toward worker cap.
+- Director: always one, always **fable**-tier (coordination judgment is the
+  highest-leverage spend; planning quality drives the escape rate)
+- QA agent(s): a SMALL FIXED POOL parallelized by logical group — **never one
+  agent per ticket**. 1 per 1-3 workers; 2 (split by domain) for 4-5. Each QA
+  works its queue sequentially; heavyweight steps (`npm run build`, full suites)
+  serialized across instances by the Director. Do not count toward worker cap.
 - **Standing lens reviewers are part of the topology** (the launcher spawns them;
   the Director cannot spawn): one `hs-sw-sprint-bug-hunter` per lens — correctness,
   security, compaction, + ux when frontend beads exist. List them by name in the
@@ -136,7 +142,7 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
 - **Director brief MUST state the labeling contract:** every fix-bead filed after
   a ticket is qa-passed carries `caught:review|manual|pr` — whoever files it.
   Unlabeled repair work is invisible to the escape-rate metric.
-- TDD consideration: plan for test-writer / implementer separation on opus tickets
+- TDD consideration: plan for test-writer / implementer separation on fable tickets
 
 ### Step 8 — Generate Sprint Brief
 
@@ -150,7 +156,7 @@ Wave 1 (Foundation)     Wave 2 (Core)        Wave 3 (Polish)
 │ T-02 models  ◆  │───▶│ T-05 UI     ●  │───▶│ T-08 docs   ●  │
 │ T-03 config  ●  │    │ T-06 hooks  ●  │    │ T-09 demo   ●  │
 └─────────────────┘    └────────────────┘    └────────────────┘
-◆ = opus  ● = sonnet
+★ = fable  ◆ = opus  ● = sonnet
 
 Director (Opus) — coordinator only, never implements
 ├── QA Agent — independent verification, never implements

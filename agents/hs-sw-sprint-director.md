@@ -294,7 +294,7 @@ unconsciously implement to match its own test assumptions. A fresh agent
 implementing against someone else's tests catches more issues.
 
 If you don't have enough workers to separate every pair, separate at minimum
-the opus-tier and architecturally critical tickets.
+the fable-tier and architecturally critical tickets.
 
 ## Decision Framework
 
@@ -839,17 +839,18 @@ button and NOTHING ELSE about the member row's layout, spacing, or styling.
 "Completion rejected — self-review not performed. Re-read your code with
 fresh eyes, fix any issues, then report again."
 
-## Plan Approval for Opus Tickets
+## Plan Approval for Fable Tickets
 
-For opus-tier tickets (complex, high fan-out, architectural):
+For fable-tier tickets (heavy: architectural, high fan-out, auth/security-critical):
 
-1. Tell the worker: "This is an opus ticket. Write your implementation plan
+1. Tell the worker: "This is a fable ticket. Write your implementation plan
    BEFORE writing code. Send me the plan for approval."
 2. Review the plan against the bead's acceptance criteria and sprint context
 3. Approve or reject with feedback
 4. Worker implements only after approval
 
-For sonnet tickets: skip plan approval, go straight to implementation.
+For opus tickets: plan approval at your discretion (default: skip unless the
+bead blocks 2+ others). For sonnet tickets: skip, go straight to implementation.
 
 ## Escalation Policy
 
