@@ -17,9 +17,20 @@ argument-hint: [--dry-run]
 Reads the persisted sprint plan from `/hs-sw-sprint-exec-plan` and launches
 a multi-agent sprint. This is the walk-away moment.
 
-**Key architecture:** Director creates the team and spawns workers — making Director
-the system-level team-lead who receives all worker messages directly. The user's
-session exits the loop after spawning Director.
+**Key architecture (revised 2026-06-10):** The LAUNCHER creates the team and spawns
+the ENTIRE topology — Director, workers, QA, and standing reviewers — as named
+teammates. The Director coordinates exclusively via SendMessage; it never spawns.
+
+> **Why:** spawned subagents cannot spawn subagents in this harness (nesting cap), so
+> a Director-creates-team design silently degrades to a solo-sequential sprint (observed
+> GH#360, 2026-06-09). The historical reason Director-creates-team existed — worker
+> questions up-leveling to the human — is now solved differently:
+> 1. Every worker/QA/reviewer spawn prompt names the Director as its manager:
+>    "Route ALL questions, blockers, and reports to `director` via SendMessage.
+>    Never address the human."
+> 2. Every spawn sets an explicit permission `mode` (e.g. `acceptEdits` or
+>    `bypassPermissions` per the sprint's autonomy mandate) so tool-permission
+>    prompts do not bubble to the human session.
 
 ## Dry-Run Mode
 
@@ -37,7 +48,7 @@ the Director would do.
 ## Sprint Dry-Run: <feature-name>
 
 ### Team
-- Director (opus) — coordinator
+- Director (fable) — coordinator
 - Worker-1 (backend): T-01, T-04, T-07
 - Worker-2 (frontend): T-02, T-05, T-08
 - QA-1: all tickets
@@ -68,7 +79,7 @@ the Director would do.
 6. Lifecycle bead marked complete, final checkpoint written
 
 ### Summary
-- Total agents: N workers + N QA + ~N×3 review agents (ephemeral)
+- Total agents: 1 director + N workers + 1-2 QA + 3-4 standing lens reviewers
 - Total waves: N
 - Estimated tickets: N (N impl + N test)
 - Artifacts produced: sprint-plan.md, sprint-state.md, architecture.md, api.md,
@@ -112,39 +123,78 @@ the Director would do.
 - **Wait for explicit "go" from user**
 - Options: go / cancel
 
-### Step 3 — Spawn Director
+### Step 3 — Create Team + Spawn Full Topology
 
-- `Agent(subagent_type="hs-sw-sprint-director", name="director", run_in_background=true)`
-- Pass the FULL sprint brief as the prompt, including:
-  - Complete `tmp/sprint-exec-plan.md` content
-  - **`feature_dir`** path (e.g., `docs/projects/features/org-management/`) — the Director
-    writes sprint-state.md checkpoints here and reads sprint-plan.md for recovery
-  - Team topology (worker names, types, model tiers, ticket assignments)
-  - Team name to create: `sprint-<date>-<project>`
-  - Quality gates and project context from AGENTS.md/CLAUDE.md
-- Director will create the team, spawn workers, and manage autonomously
+The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate,Agent,SendMessage")`.
+
+1. **Create the team:** `TeamCreate("sprint-<date>-<project>")`
+2. **Spawn the Director** into the team (model: **fable** — see AGENTS.md Model Tiers):
+   `Agent(subagent_type="hs-sw-sprint-director", name="director", team_name=<team>, run_in_background=true, model="fable", mode=<sprint autonomy mode>)`
+   Its prompt is the FULL sprint brief:
+   - Complete `tmp/sprint-exec-plan.md` content
+   - **`feature_dir`** path — Director writes sprint-state.md checkpoints there
+   - The roster it commands (exact teammate names spawned below)
+   - Quality gates and project context from AGENTS.md/CLAUDE.md
+   - Explicit statement: "You coordinate via SendMessage ONLY. You cannot and must
+     not spawn agents. Your roster is fixed; if it proves insufficient, write the
+     gap to sprint-state.md and message the human as last resort."
+3. **Spawn workers** per the exec-plan topology — model from the lane's highest
+   tier label (`tier:fable`→"fable", `tier:opus`→"opus", `tier:sonnet`→"sonnet"):
+   `Agent(subagent_type="general-purpose", name="worker-N", team_name=<team>, run_in_background=true, model=<tier>, mode=<sprint autonomy mode>)`
+   Worker prompt: lane assignment + "Your manager is `director`. Route ALL
+   questions, blockers, and completion reports to it via SendMessage. Never
+   address the human. Wait for assignments from director; do not self-start."
+4. **Spawn QA agent(s)** — a SMALL FIXED POOL, never one per ticket (1 per 1-3
+   workers; 2 split by domain for 4-5; model "sonnet"):
+   `Agent(subagent_type="hs-sw-sprint-qa", name="qa-N", team_name=<team>, run_in_background=true, model="sonnet", mode=<sprint autonomy mode>)`
+   Each QA instance works its queue of beads sequentially; the pool gives the
+   parallelism. Heavyweight steps (`npm run build`, full suite runs) are
+   serialized across instances by the Director.
+5. **Spawn standing reviewers** (replaces Director-spawned ephemeral reviewers —
+   the Director cannot spawn): one `hs-sw-sprint-bug-hunter` per lens used by the
+   plan (correctness, security, compaction, + ux for frontend-heavy sprints; model "opus"):
+   `Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-<lens>", team_name=<team>, run_in_background=true, model="opus", mode=<sprint autonomy mode>)`
+   Reviewer prompt: "You hold the <LENS> lens for the whole sprint. Idle until
+   `director` messages you a wave scope (diff range + context); review ONLY that
+   scope, file beads per your definition (ALWAYS `--label=caught:review`), report
+   back to director, then idle. Treat each wave as fresh — do not carry prior-wave
+   conclusions into a new wave's review."
+6. (Optional, plan-dependent) **Spawn peer reviewer** the same way for end-of-wave
+   convergence passes (see hs-sw-peer-reviewer definition for its timing rules).
 
 ### Step 4 — Exit
 
-- Report to user: "Director launched in background. It will create the team, spawn N workers + QA agent(s)."
-- "You can walk away. Director manages everything. Return to check verification entry points."
-- "Beads will have the `qa-passed` label when sprint finishes — you close them after review with `bd close`."
+- Report to user: "Team created: director + N workers + N QA + N reviewers. Director
+  has the brief and manages everything via SendMessage."
+- "You can walk away. Beads get the `qa-passed` label as they finish — you close them
+  after review with `bd close`."
 - "When the sprint is done, run `/sprint-close` to close all qa-passed beads and remove the status bar. Use `--dry-run` first to preview. If the bar shows stale data before then, run `/sprint-status-sync`."
-- **Do NOT create a team. Do NOT spawn workers. Do NOT stay in the loop.**
+- **Do NOT assign work yourself. Do NOT stay in the loop — the Director runs the sprint.**
 
 ## Rules
 
 - Never proceed without explicit user approval (live mode only — dry-run needs no approval)
-- Director creates the team (NOT the launcher) — this is critical for message routing
-- Director gets the full sprint brief + team topology in its spawn prompt
-- Director spawns QA agent(s) alongside workers — QA verifies all completions
-- 1-3 workers → 1 QA agent; 4-5 workers → 2 QA agents (split by domain)
-- Cap at 5 concurrent workers (enforced by Director); QA agents do not count toward cap
+- The LAUNCHER creates the team and spawns the entire topology (Director CANNOT spawn —
+  subagent nesting cap); the Director coordinates via SendMessage only
+- Every spawn names the Director as manager and sets an explicit permission `mode` —
+  this is what prevents questions and permission prompts up-leveling to the human
+- Director gets the full sprint brief + the exact roster in its spawn prompt
+- 1-3 workers → 1 QA agent; 4-5 workers → 2 QA agents (split by domain). QA instances
+  verify different beads concurrently; Director serializes heavyweight steps (builds)
+- Worker count = the exec-plan's TRUE PARALLEL WIDTH (see exec-plan Step 7); hard
+  ceiling 5; QA/reviewers do not count toward it
 - Wave gates are hard — no Wave N+1 work until gate passes (QA + quality gates + review flywheel + smoke test)
-- Review flywheel: 3 parallel lenses (correctness, security, compaction) + UX for frontend waves
-- Review agents are ephemeral — spawned fresh per wave, shut down after reporting
+- Review flywheel: standing reviewer teammates, one per lens (correctness, security,
+  compaction, + UX for frontend waves), pre-spawned by the launcher; Director messages
+  them each wave's scope; they file beads with `--label=caught:review` — MANDATORY,
+  this label feeds the escape-rate metric
+- Every fix-bead filed after a ticket was qa-passed MUST carry a `caught:review|manual|pr`
+  label, whoever files it (Director included) — unlabeled repair work is invisible to
+  the metric and was the GH#360 retro's accounting gap
 - Sprint close includes docs generation: `/hs-sw-docs-gen-int` (internal) + `/hs-sw-docs-gen-ext` (external to `docs/areas/site/`)
 - Workers are general-purpose (full tool access)
 - NO Tasks — beads (`bd`) is the only tracking system
-- Launcher exits immediately after spawning Director
-- Requires Claude Code team features
+- Launcher exits immediately after spawning the topology
+- Requires Claude Code team features in the LAUNCHER session — verify TeamCreate is
+  available (ToolSearch) BEFORE creating beads/status artifacts; if absent, tell the
+  user and fall back to an explicit, user-approved solo-sequential run (never silent)

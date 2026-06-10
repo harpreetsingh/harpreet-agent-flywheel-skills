@@ -26,13 +26,22 @@ is the thinking step before `/hs-sw-sprint-go`.
 - `bd graph --all` for dependency structure
 - Read AGENTS.md for project context, quality gates, verification entry points
 
-### Step 2 — Verification Entry Points
+### Step 2 — Verification Entry Points (HARD GATE)
 
-- Check AGENTS.md for a "Verification Entry Points" section
-- If configured: create missing verification tickets with `bd create`
+- Check AGENTS.md for a "Verification Entry Points" section (persona journeys per
+  feature area). If configured: create missing verification tickets with `bd create`.
+  If no section: note and suggest adding one — but the gate below applies regardless.
+- **Verification-altitude gate (GH#360 retro, 2026-06-10):** the plan CANNOT be
+  finalized unless every user-facing impl bead maps to a persona-journey assertion
+  in some VERIFY bead. A valid VERIFY acceptance criterion has three parts:
+  **persona** ("as the invited user"), **surface** ("in the workspace switcher"),
+  **visible end-state** ("the joined workspace appears"). Mechanism assertions
+  (DB rows created, API status codes) are allowed only IN ADDITION — a VERIFY bead
+  whose criteria are mechanism-only is defective; rewrite it before finalizing.
+  VERIFY beads must run on DEFAULT config/ports (the environment a real user hits),
+  not a bespoke test setup.
 - Wire as dependents of implementation tickets they verify
 - Place in final wave
-- If no section: note and suggest adding one
 
 ### Step 3 — TDD Pairing Check
 
@@ -54,12 +63,16 @@ Before wave analysis, verify TDD structure:
 
 ### Step 5 — Model Tier Labeling
 
-Apply tiers via `bd update <id> --add-label tier:<tier>`:
+Apply tiers via `bd update <id> --add-label tier:<tier>` (three tiers, 2026-06-10):
 
-- `opus`: architectural decisions, complex multi-file refactors, high fan-out (blocks 3+), protocol design, anything moderately complex or above
-- `sonnet`: standard features, API endpoints, UI components, config, boilerplate, test writing, docs, mechanical tasks
+- `fable`: HEAVY — architectural decisions, complex multi-file refactors, high
+  fan-out (blocks 3+), protocol/auth/security-critical design, subtle debugging
+- `opus`: STANDARD — features, API endpoints, UI components, test writing,
+  contract tests, non-trivial fixes
+- `sonnet`: TRIVIAL — mechanical/boilerplate, config, docs, copy/label changes
 
-Do NOT use `haiku` tier. All sprint work uses either opus or sonnet.
+Do NOT use `haiku` tier. See AGENTS.md "Model Tiers" for role defaults
+(Director=fable, reviewers=opus, QA=sonnet).
 
 Respect existing ticket labels — don't overwrite user-assigned ones.
 
@@ -82,16 +95,22 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
 
 ### Step 7 — Team Topology
 
-- **Check the rework gate first.** Read the trailing escape rate from
-  `~/.claude/flywheel/sprint-metrics.jsonl` (or run `/hs-sw-flywheel-metrics`).
-  This is where agent allocation is decided — at plan time, not mid-sprint.
-  - Trailing escape rate **<20%** (Yegge's threshold): scoping is healthy — you
-    may allocate toward the upper end of the worker range.
-  - Trailing escape rate **≥20%**: your tickets are under-scoped. Do NOT increase
-    worker count — hold or reduce, and spend the effort on Phase 0 enrichment /
-    `/hs-sw-beads-review` instead. Adding agents multiplies rework, not throughput.
-  - No log yet (first sprint): default conservatively (≤5 workers) until you have
-    a measured escape rate.
+- **Worker count = TRUE PARALLEL WIDTH, always.** The escape-rate gate no longer
+  throttles width directly (revised 2026-06-10 — GH#360 retro: a blanket "hold at 2"
+  falsely serializes work the lane analysis already proved parallel-safe). The gate
+  changes WHAT YOU DO, not how many workers run:
+  - Read the trailing escape rate from `~/.claude/flywheel/sprint-metrics.jsonl`
+    (or `/hs-sw-flywheel-metrics`), and split it by source where the entries allow:
+    **worker-code rework** (defects in sprint-written code) vs **planner misses**
+    (verification scope, ticket enrichment).
+  - Trailing rate **≥20%** → a `/hs-sw-beads-review` enrichment pass over this
+    sprint's beads is MANDATORY before finalizing the plan, and Step 2's
+    verification-altitude gate gets extra scrutiny. Only a high **worker-code**
+    component argues for shrinking width below the lane-derived number — planner
+    misses are fixed by better beads, not fewer workers.
+  - Trailing rate **<20%**: proceed at full lane width; the 5-worker ceiling may
+    rise.
+  - No log yet (first sprint): full lane width, ceiling 5.
 - **Cap worker count by TRUE parallel width, not ticket count.** Read the
   file-overlap graph from `/hs-sw-beads-review` (built from each bead's `## Files`
   section). For each wave, the real parallelism is the largest set of beads whose
@@ -104,16 +123,26 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
   the Director inherits a collision-free starting plan. Two beads that both
   `create` the same path should have been merged in review — if one survives,
   flag it back.
-- Agent count: min(true parallel width, tickets / 4, 5) — and the 5-cap may rise
-  only when the trailing escape rate is proven <20% (rework gate above). Collision
-  structure caps it from below; rework rate gates the ceiling.
+- Agent count: min(true parallel width, 5) — collision structure (lanes) is the
+  binding constraint; the 5-ceiling may rise when the trailing escape rate is <20%.
 - Logical groupings: analyze domains (backend/frontend/infra or by label)
 - **Every domain with beads MUST have at least one worker** — this is the rule
   that prevents "backend done, frontend skipped"
 - Manager layer: only if 4+ workers; otherwise Director manages directly
-- Director: always one, always opus-tier
-- QA agent: always one, always present (does not count toward worker cap)
-- TDD consideration: plan for test-writer / implementer separation on opus tickets
+- Director: always one, always **fable**-tier (coordination judgment is the
+  highest-leverage spend; planning quality drives the escape rate)
+- QA agent(s): a SMALL FIXED POOL parallelized by logical group — **never one
+  agent per ticket**. 1 per 1-3 workers; 2 (split by domain) for 4-5. Each QA
+  works its queue sequentially; heavyweight steps (`npm run build`, full suites)
+  serialized across instances by the Director. Do not count toward worker cap.
+- **Standing lens reviewers are part of the topology** (the launcher spawns them;
+  the Director cannot spawn): one `hs-sw-sprint-bug-hunter` per lens — correctness,
+  security, compaction, + ux when frontend beads exist. List them by name in the
+  Director brief roster.
+- **Director brief MUST state the labeling contract:** every fix-bead filed after
+  a ticket is qa-passed carries `caught:review|manual|pr` — whoever files it.
+  Unlabeled repair work is invisible to the escape-rate metric.
+- TDD consideration: plan for test-writer / implementer separation on fable tickets
 
 ### Step 8 — Generate Sprint Brief
 
@@ -127,7 +156,7 @@ Wave 1 (Foundation)     Wave 2 (Core)        Wave 3 (Polish)
 │ T-02 models  ◆  │───▶│ T-05 UI     ●  │───▶│ T-08 docs   ●  │
 │ T-03 config  ●  │    │ T-06 hooks  ●  │    │ T-09 demo   ●  │
 └─────────────────┘    └────────────────┘    └────────────────┘
-◆ = opus  ● = sonnet
+★ = fable  ◆ = opus  ● = sonnet
 
 Director (Opus) — coordinator only, never implements
 ├── QA Agent — independent verification, never implements
