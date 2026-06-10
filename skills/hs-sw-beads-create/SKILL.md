@@ -199,6 +199,31 @@ exist and are verified failing. This is structural enforcement — not honor-sys
 Test beads go in the same wave as or one wave before their impl bead. The
 dependency graph naturally prevents impl from starting before tests exist.
 
+## VERIFY Beads (persona-journey verification — final wave)
+
+Every epic/feature with user-facing behavior gets a VERIFY bead in the final
+wave, depending on all impl beads it covers. Its acceptance criteria MUST be
+written at PERSONA altitude — three required parts per criterion:
+
+```
+Title: "VERIFY: <feature> end-to-end as <persona>"
+Acceptance criteria (each criterion needs all three parts):
+  - [ ] PERSONA:   as <who> (e.g. "as a newly invited user")
+  - [ ] SURFACE:   at <where the user actually looks> (e.g. "in the workspace switcher")
+  - [ ] END-STATE: <what is visibly true> (e.g. "the joined workspace appears")
+Plus:
+  - [ ] Runs on DEFAULT config/ports (the environment a real user hits)
+  - [ ] Test entities are idempotent and deleted at the end
+```
+
+Mechanism assertions (DB rows, API status codes) are allowed only IN ADDITION to
+persona criteria — never instead. **Why (GH#360 retro, 2026-06-10):** a verify
+bead that asserted "membership row created, status codes correct" passed while
+invited users landed in an empty workspace UI. The persona criterion ("as the
+invited user, the joined workspace is visible in the switcher") would have
+caught it. QA is instructed to FAIL mechanism-only verification ("verification
+altitude").
+
 ## Domain Coverage Check
 
 After all beads are created, verify domain balance:

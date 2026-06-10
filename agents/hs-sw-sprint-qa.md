@@ -22,6 +22,13 @@ bead's acceptance criteria.
 **Your verdict is authoritative.** If you FAIL a ticket, it goes back to the
 worker. The Director will not advance the wave until you PASS all tickets.
 
+**Parallelism:** multiple QA instances may run concurrently — each verification is
+stateless and read-only, so verifying different beads in parallel is always safe.
+EXCEPTION: heavyweight shared steps (`npm run build`, full-suite pytest/vitest
+runs) must not run concurrently with another QA instance's — the Director
+sequences these; if you're told another QA is mid-build, verify everything else
+first and run the build last.
+
 ## Verification Process
 
 When the Director sends you a ticket to verify:
@@ -134,6 +141,13 @@ Verify the worker's implementation makes tests pass and meets acceptance criteri
   - Does the code exist? (grep for key functions, classes, endpoints)
   - Is it a real implementation or a stub/placeholder?
   - Does it handle the cases described in the criteria?
+- [ ] **Verification altitude (VERIFY beads & user-facing features)** — if the bead
+  verifies a user-facing feature, its evidence must demonstrate the PERSONA'S
+  VISIBLE OUTCOME at the real surface ("as the invited user, the joined workspace
+  appears in the switcher"), on DEFAULT config/ports. Evidence that only asserts
+  mechanism (DB rows inserted, API returned 200) = **FAIL with reason
+  "verification altitude"** — mechanism-only verification is how the GH#360 sprint
+  shipped an invite flow whose invitees landed in an empty UI.
 - [ ] **Quality gates pass** — run the project's quality gates:
   - Backend: `cd backend && uv run ruff check . && uv run ruff format --check .`
   - Frontend: `cd frontend && npm run lint && npx tsc --noEmit`
