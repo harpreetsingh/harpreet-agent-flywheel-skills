@@ -98,18 +98,49 @@ gets prevented:
 Output proposals as a diff-ready list — do NOT auto-apply edits to AGENTS.md or the
 skills. The human approves, because these change the rules for every future sprint.
 
-### Step 5 — Write the retrospective entry
+### Step 5 — Record the retro + route the rules (record vs actuators)
 
-Append to `<feature-dir>/learnings.md` (create if missing; this is the persistent,
-per-project learning log):
+A retrospective produces TWO kinds of output that belong in DIFFERENT homes. Do not
+dump both into one doc — a per-feature `learnings.md` is a dead-drop nothing reads at
+task time.
+
+**5a — The RECORD (what happened):** write a dated file to
+`docs/sprint-retrospectives/<YYYY-MM-DD>-<gh-or-slug>.md` with frontmatter. The
+`rules_emitted` block makes the record auditable — it links each correction to where
+it actually landed (CM bullet id / AGENTS.md section), so a recurring pattern is
+visible across retros.
 ```markdown
-## Retrospective — <sprint id> (<date>)
-- Escape rate: N% (trend: ↑/↓ vs prior) — <under/over 20% gate>
-- Tickets: X · first-pass QA fails: Y · escape defects: review A / manual B / pr C
-- Patterns (2+): <category × count>, caught mostly at <stage>
-- Top driver of escape rate: <pattern>
-- Proposed corrections (for review): <list, with target file>
+---
+date: <YYYY-MM-DD>
+sprint: <sprint id>
+branch: <branch>
+gh_issue: <n>
+beads_epic: <id>
+tickets_solved: <X>
+escape_rate: <0.NN>        # greppable trend across the folder
+status: <merged PR #n | open>
+patterns: [<category>, ...]
+rules_emitted:
+  cm: [<bullet-id>, ...]
+  agents_md: [<section>, ...]
+  scripts: [<file/guard>, ...]
+---
+# Retrospective — <sprint id>
+<narrative: outcome, composition note, patterns (2+), top driver, corrections table>
 ```
+
+**5b — The ACTUATORS (what changes — so future agents act on it):**
+- **Generalizable agent-behavior rules** → CM: `cm add "<rule>" --category <cat> --json`
+  and capture the returned bullet id into `rules_emitted.cm`. (CM surfaces these in
+  `cm context` at task time; this is the project's chosen procedural memory.)
+- **Project-specific durable rules** → propose AGENTS.md diffs (per the "propose, never
+  auto-apply" rule below); on approval, record the section names in `rules_emitted.agents_md`.
+- **Tooling guards** (e.g. ci-check aborts on remote config) → propose the script change;
+  record in `rules_emitted.scripts`.
+- **Skill/Phase-0 corrections** → these change the flywheel skills repo; note them and
+  the PR that carries them.
+
+Never write the per-feature `<feature-dir>/learnings.md` — it is not consumed.
 
 ### Step 6 — Report
 
@@ -119,19 +150,24 @@ Retrospective — <sprint id>
   Patterns:
     • reuse-miss ×3  (2 caught:review, 1 caught:pr) — biggest driver
     • scope-creep ×2 (caught:manual)
-  Proposed corrections (your approval needed):
-    1. AGENTS.md: add "this codebase has existing X helpers — grep before building"
-    2. beads-create: require reuse pointer for any bead in src/services/
-    3. Lower right-sizing file threshold 5 → 4 for backend beads
-  Written: docs/features/<x>/learnings.md
+  Routed:
+    • CM: <bullet-id> reuse-before-build; <bullet-id> scope-discipline
+    • AGENTS.md (proposed): "existing X helpers — grep before building"
+    • flywheel: beads-create reuse-pointer requirement (PR #n)
+  Record: docs/sprint-retrospectives/<date>-<slug>.md
 ```
 
 ## Rules
 
+- **Record vs actuators (Step 5):** the dated `docs/sprint-retrospectives/` file is the
+  RECORD; CM + AGENTS.md are the ACTUATORS agents read at task time. Generalizable rules
+  MUST go to CM (`cm add`), not only the record — otherwise the retro is prose nobody acts on.
 - **Propose, never auto-apply** changes to AGENTS.md / Phase 0 / skills — these are
-  rule changes for every future sprint; the human gates them.
+  rule changes for every future sprint; the human gates them. (CM adds are fine to apply —
+  they're reversible via `cm forget` and don't change shared rule files.)
 - A category needs **2+ occurrences** to be a pattern. One incident is noise.
 - Weight by catch-stage: a `caught:pr` defect (escaped everything) is worth more
   attention than a `caught:review` one (the gate did its job).
 - Tie the dominant pattern to the escape rate — that's the thing to fix before scaling.
-- Idempotent: re-running appends a dated entry; it never rewrites prior learnings.
+- Idempotent: re-running writes/updates the dated record for that sprint and never
+  rewrites prior retros; CM is deduped by content; AGENTS.md edits stay human-gated.
