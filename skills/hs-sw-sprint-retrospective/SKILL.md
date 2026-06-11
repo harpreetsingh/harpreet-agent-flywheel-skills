@@ -118,6 +118,8 @@ gh_issue: <n>
 beads_epic: <id>
 tickets_solved: <X>
 escape_rate: <0.NN>        # greppable trend across the folder
+post_gate_user_found: <N>  # issues the human hit in the first hour of real use (target ≤2)
+scorecard: {escape_rate: "<grade>", catch_at_layer: "<grade>", first_pass: "<grade>", velocity: "<grade>", planning_seams: "<grade>", done_calibration: "<grade>", env_hygiene: "<grade>", retro_loop: "<grade>", overall: "<grade>"}
 status: <merged PR #n | open>
 patterns: [<category>, ...]
 rules_emitted:
@@ -127,7 +129,20 @@ rules_emitted:
 ---
 # Retrospective — <sprint id>
 <narrative: outcome, composition note, patterns (2+), top driver, corrections table>
+
+## Scorecard (compare each sprint — same dimensions, same strictness)
+<table grading the FIXED dimensions: escape rate · catch-at-layer · first-pass
+quality · velocity · planning/seams · "done" calibration (post-gate user-found
+count) · env/infra hygiene · retro loop closure · overall. END with explicit
+next-sprint targets.>
 ```
+
+**Scorecard discipline:** BEFORE grading, read the PREVIOUS record in
+`docs/sprint-retrospectives/` and put its grades side-by-side — every dimension
+gets graded every sprint, same strictness, so the trend is real (a dimension
+nobody re-grades silently becomes an A). The frontmatter `scorecard:` map plus
+`escape_rate:` and `post_gate_user_found:` make the whole trend greppable:
+`grep -h "escape_rate:\|post_gate_user_found:\|overall" docs/sprint-retrospectives/*.md`.
 
 **5b — The ACTUATORS (what changes — so future agents act on it):**
 - **Generalizable agent-behavior rules** → CM: `cm add "<rule>" --category <cat> --json`
