@@ -126,6 +126,18 @@ granular set of beads with full dependency structure.
        both, is the anti-drift anchor. (Right-sizing splits every cross-layer
        feature into exactly these producer/consumer pairs — so most multi-bead
        features need a contract.)
+       Contracts for WIRING beads must pin BOTH directions — the request model's
+       declared fields AND the response serializer's emitted keys, against the
+       REAL symbols. Half-contracts ("verified the response, assumed the
+       request") were GH#342's escape class .28/.30.
+     - **Transcript-step traceability (e2e/persona beads)** — if the bead carries
+       a command transcript or persona journey, EVERY step must name the bead
+       that implements it, and every flag/argument form/expected output line in
+       the transcript must exist in that bead's ACs or contract. A transcript
+       step no bead implements is a planned live-fire escape (GH#342: the
+       `plan --new` form and the omitted-`--mode` stage-default step were both
+       transcript prose with no implementing bead). Where step N's state feeds
+       step N+1's default behavior, require a seam AC testing the interaction.
    - Appropriate type (epic/feature/task/bug) and priority (0-4)
    - Record the returned bead ID for dependency wiring
 4. **Phase 1b — Create TDD test beads** (see TDD section below):

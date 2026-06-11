@@ -156,6 +156,30 @@ be changed to make the system work better for users?
      (source of truth) wins; update the consumer to match.
    - [ ] **Source of truth is named** — the contract block names the producing
      bead ID, so there's no ambiguity about who owns the shape.
+   - [ ] **Both directions for wiring beads** — a contract that pins the response
+     shape but assumes the request shape (or vice versa) is HALF a contract. The
+     request model's declared fields AND the response serializer's emitted keys
+     must both be pinned against the REAL symbols. (GH#342: an empty request
+     model silently discarded a field the CLI sent; a serializer omitted the new
+     column the CLI read — both passed every single-sided check.)
+
+7b. **Transcript-vs-AC diff** (the e2e/persona bead vs the implementing beads —
+   GH#342 retro's top correction):
+
+   If the set contains an e2e/live-fire/persona bead with a command transcript or
+   journey: walk EVERY step of it against the implementing beads' contracts.
+   - [ ] **Every transcript step names its implementing bead.** A step no bead
+     implements is a planning gap that will surface as a live-fire escape
+     (GH#342: `plan --new` was transcript prose with no implementing AC; the
+     no-`--mode` stage-default step had no bead teaching the CLI to omit the key).
+   - [ ] **Every flag, argument form, and expected output line in the transcript
+     exists in some implementing bead's AC or contract** — byte-compare the
+     command forms, not the vibes.
+   - [ ] **Seam steps get seam coverage**: where step N's state feeds step N+1's
+     default behavior (e.g. a transition then an omitted-flag run), some bead's
+     AC must test that interaction, not just each side.
+   Divergences are High — resolve before W1 (fix the transcript or add/amend the
+   implementing bead).
 
 8. **File-overlap graph** (collision-free scheduling input):
 
