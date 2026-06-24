@@ -162,6 +162,23 @@ The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate
 6. (Optional, plan-dependent) **Spawn peer reviewer** the same way for end-of-wave
    convergence passes (see hs-sw-peer-reviewer definition for its timing rules).
 
+### Step 3b — Arm the Stall-Watchdog (institutionalized from jl7w3, 2026-06-24)
+
+The Director runs as a background agent and **cannot self-wake**, so it reliably parks at
+wave boundaries (jl7w3: 4 stalls, incl. a 44-min launch stall, each caught only because the
+human had set up a manual `/loop` timer). Bake that timer in. Before exiting, arm a recurring
+watchdog so a stall is caught in minutes, not whenever the human next checks:
+
+`ToolSearch("select:CronCreate")`, then `CronCreate(cron="*/5 * * * *", recurring=true, prompt=<stall-check>)`
+where `<stall-check>` instructs: run `bash tmp/sprint-status.sh` + `date -u`, compare to the
+prior check; if there has been **NO progress for ~5+ min AND agents are idle with open
+in-flight work**, diagnose the stalled bead + who owns the next action and nudge the
+responsible teammate (usually the Director) via `SendMessage`. Hard rules for the watchdog:
+never assign work itself; never nudge when work is genuinely in flight (a worker mid-impl, QA
+mid-verify, a lens mid-review, a long e2e, or invisible gate-closeout bookkeeping — these
+produce no status/file change for up to ~10 min, so widen the threshold right after a gate);
+self-delete the cron (`CronDelete`) once the status bar shows all-done.
+
 ### Step 4 — Exit
 
 - Report to user: "Team created: director + N workers + N QA + N reviewers. Director
