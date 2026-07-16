@@ -17,9 +17,10 @@ argument-hint: [--dry-run]
 Reads the persisted sprint plan from `/hs-sw-sprint-exec-plan` and launches
 a multi-agent sprint. This is the walk-away moment.
 
-**Key architecture (revised 2026-06-10):** The LAUNCHER creates the team and spawns
-the ENTIRE topology — Director, workers, QA, and standing reviewers — as named
-teammates. The Director coordinates exclusively via SendMessage; it never spawns.
+**Key architecture (revised 2026-07-05):** The LAUNCHER spawns the ENTIRE topology —
+Director, workers, QA, and standing reviewers — as named background teammates (teams
+form implicitly; `TeamCreate` was removed in v2.1.178). The Director coordinates
+exclusively via SendMessage; it never spawns.
 
 > **Why:** spawned subagents cannot spawn subagents in this harness (nesting cap), so
 > a Director-creates-team design silently degrades to a solo-sequential sprint (observed
@@ -123,13 +124,21 @@ the Director would do.
 - **Wait for explicit "go" from user**
 - Options: go / cancel
 
-### Step 3 — Create Team + Spawn Full Topology
+### Step 3 — Spawn Full Topology
 
-The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate,Agent,SendMessage")`.
+The launcher does ALL spawning. Load tools first: `ToolSearch("select:Agent,SendMessage")`.
 
-1. **Create the team:** `TeamCreate("sprint-<date>-<project>")`
-2. **Spawn the Director** into the team (model: **fable** — see AGENTS.md Model Tiers):
-   `Agent(subagent_type="hs-sw-sprint-director", name="director", team_name=<team>, run_in_background=true, model="fable", mode=<sprint autonomy mode>)`
+**Teams model (Claude Code ≥ v2.1.178):** `TeamCreate`/`TeamDelete` were REMOVED. Teams now form
+implicitly when the launcher spawns background agents in the same session — gated behind the
+experimental flag `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (set in `.claude/settings.json` `env`,
+applied at launch) and best supported in the interactive TUI. There is NO `TeamCreate` call and NO
+`team_name` parameter. Verify `Agent` + `SendMessage` are both present via ToolSearch; if
+`SendMessage` is missing, the flag is off or the session is headless — tell the user to set the
+flag and relaunch in an interactive session, and fall back only to an explicit, user-approved
+solo-sequential run (never silent).
+
+1. **Spawn the Director** as a background teammate (model: **fable** — see AGENTS.md Model Tiers):
+   `Agent(subagent_type="hs-sw-sprint-director", name="director", run_in_background=true, model="fable", mode=<sprint autonomy mode>)`
    Its prompt is the FULL sprint brief:
    - Complete `tmp/sprint-exec-plan.md` content
    - **`feature_dir`** path — Director writes sprint-state.md checkpoints there
@@ -140,20 +149,20 @@ The launcher does ALL spawning. Load tools first: `ToolSearch("select:TeamCreate
      gap to sprint-state.md and message the human as last resort."
 3. **Spawn workers** per the exec-plan topology — model from the lane's highest
    tier label (`tier:fable`→"fable", `tier:opus`→"opus", `tier:sonnet`→"sonnet"):
-   `Agent(subagent_type="general-purpose", name="worker-N", team_name=<team>, run_in_background=true, model=<tier>, mode=<sprint autonomy mode>)`
+   `Agent(subagent_type="general-purpose", name="worker-N", run_in_background=true, model=<tier>, mode=<sprint autonomy mode>)`
    Worker prompt: lane assignment + "Your manager is `director`. Route ALL
    questions, blockers, and completion reports to it via SendMessage. Never
    address the human. Wait for assignments from director; do not self-start."
 4. **Spawn QA agent(s)** — a SMALL FIXED POOL, never one per ticket (1 per 1-3
    workers; 2 split by domain for 4-5; model "sonnet"):
-   `Agent(subagent_type="hs-sw-sprint-qa", name="qa-N", team_name=<team>, run_in_background=true, model="sonnet", mode=<sprint autonomy mode>)`
+   `Agent(subagent_type="hs-sw-sprint-qa", name="qa-N", run_in_background=true, model="sonnet", mode=<sprint autonomy mode>)`
    Each QA instance works its queue of beads sequentially; the pool gives the
    parallelism. Heavyweight steps (`npm run build`, full suite runs) are
    serialized across instances by the Director.
 5. **Spawn standing reviewers** (replaces Director-spawned ephemeral reviewers —
    the Director cannot spawn): one `hs-sw-sprint-bug-hunter` per lens used by the
    plan (correctness, security, compaction, + ux for frontend-heavy sprints; model "opus"):
-   `Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-<lens>", team_name=<team>, run_in_background=true, model="opus", mode=<sprint autonomy mode>)`
+   `Agent(subagent_type="hs-sw-sprint-bug-hunter", name="review-<lens>", run_in_background=true, model="opus", mode=<sprint autonomy mode>)`
    Reviewer prompt: "You hold the <LENS> lens for the whole sprint. Idle until
    `director` messages you a wave scope (diff range + context); review ONLY that
    scope, file beads per your definition (ALWAYS `--label=caught:review`), report
@@ -191,7 +200,7 @@ self-delete the cron (`CronDelete`) once the status bar shows all-done.
 ## Rules
 
 - Never proceed without explicit user approval (live mode only — dry-run needs no approval)
-- The LAUNCHER creates the team and spawns the entire topology (Director CANNOT spawn —
+- The LAUNCHER spawns the entire topology as background teammates (Director CANNOT spawn —
   subagent nesting cap); the Director coordinates via SendMessage only
 - Every spawn names the Director as manager and sets an explicit permission `mode` —
   this is what prevents questions and permission prompts up-leveling to the human
@@ -212,6 +221,9 @@ self-delete the cron (`CronDelete`) once the status bar shows all-done.
 - Workers are general-purpose (full tool access)
 - NO Tasks — beads (`bd`) is the only tracking system
 - Launcher exits immediately after spawning the topology
-- Requires Claude Code team features in the LAUNCHER session — verify TeamCreate is
-  available (ToolSearch) BEFORE creating beads/status artifacts; if absent, tell the
-  user and fall back to an explicit, user-approved solo-sequential run (never silent)
+- Requires Claude Code agent-teams enabled in the LAUNCHER session: the experimental flag
+  `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (`.claude/settings.json` `env`, applied at launch)
+  AND an interactive session. Verify `Agent` + `SendMessage` are available via ToolSearch
+  BEFORE spawning; if `SendMessage` is absent (flag off or headless), tell the user to set the
+  flag + relaunch interactively, and fall back only to an explicit, user-approved
+  solo-sequential run (never silent)
