@@ -1,6 +1,6 @@
 ---
 name: hs-sw-sprint-exec-plan
-description: Analyze beads into waves, label cost tiers, design team topology, generate ASCII diagram
+description: Analyze beads into waves, label cost tiers, design team topology, generate mermaid deployment diagram
 ---
 
 # /sprint-exec-plan — Sprint Execution Plan
@@ -14,7 +14,7 @@ description: Analyze beads into waves, label cost tiers, design team topology, g
 ```
 
 Read-only analysis of your beads backlog. Produces a sprint brief with wave plan,
-cost tiers, team topology, and ASCII deployment diagram. No team creation — this
+cost tiers, team topology, and mermaid deployment diagram. No team creation — this
 is the thinking step before `/hs-sw-sprint-go`.
 
 ## Process
@@ -148,22 +148,53 @@ Infra: 3 impl + 0 test = 3 beads  ⚠️ no test coverage
 
 Two artifacts:
 
-**A. ASCII Deployment Diagram:**
-```
-Wave 1 (Foundation)     Wave 2 (Core)        Wave 3 (Polish)
-┌─────────────────┐    ┌────────────────┐    ┌────────────────┐
-│ T-01 schema  ◆  │    │ T-04 API    ●  │    │ T-07 tests  ●  │
-│ T-02 models  ◆  │───▶│ T-05 UI     ●  │───▶│ T-08 docs   ●  │
-│ T-03 config  ●  │    │ T-06 hooks  ●  │    │ T-09 demo   ●  │
-└─────────────────┘    └────────────────┘    └────────────────┘
-★ = fable  ◆ = opus  ● = sonnet
+**A. Deployment Diagram — mermaid in the file, ASCII on screen:**
 
-Director (Opus) — coordinator only, never implements
-├── QA Agent — independent verification, never implements
-├── Backend Worker-1: T-01 (test), T-04 (impl)
-├── Backend Worker-2: T-02 (test), T-05 (impl)
-└── Frontend Worker-3: T-06 (test), T-07 (impl), T-08, T-09
+The diagram has two renderings and you produce both:
+
+- **Written to the plan files** (`tmp/sprint-exec-plan.md`, `<feature_dir>/sprint-plan.md`)
+  → **mermaid**. Those files are read in GitHub/VS Code/Obsidian, where mermaid renders.
+- **Presented in conversation** (Step 9) → **ASCII**. The terminal does not render
+  mermaid; a mermaid fence on screen is unreadable source. See Step 9 for that form.
+
+Mermaid form — wave plan — one subgraph per wave, tier in the node label:
+```mermaid
+flowchart LR
+  subgraph W1["Wave 1 — Foundation"]
+    T01["T-01 schema<br/>opus"]
+    T02["T-02 models<br/>opus"]
+    T03["T-03 config<br/>sonnet"]
+  end
+  subgraph W2["Wave 2 — Core"]
+    T04["T-04 API<br/>sonnet"]
+    T05["T-05 UI<br/>sonnet"]
+    T06["T-06 hooks<br/>sonnet"]
+  end
+  subgraph W3["Wave 3 — Polish"]
+    T07["T-07 tests<br/>sonnet"]
+    T08["T-08 docs<br/>sonnet"]
+    T09["T-09 demo<br/>sonnet"]
+  end
+  W1 --> W2 --> W3
 ```
+
+Mermaid form — team topology, Director at the root, agents as children:
+```mermaid
+flowchart TD
+  D["Director (Opus)<br/>coordinator only, never implements"]
+  QA["QA Agent<br/>independent verification, never implements"]
+  W1A["Backend Worker-1<br/>T-01 (test), T-04 (impl)"]
+  W2A["Backend Worker-2<br/>T-02 (test), T-05 (impl)"]
+  W3A["Frontend Worker-3<br/>T-06 (test), T-07 (impl), T-08, T-09"]
+  D --> QA
+  D --> W1A
+  D --> W2A
+  D --> W3A
+```
+
+Tier goes in the node label (`fable` / `opus` / `sonnet`) — no legend needed.
+In mermaid node labels use `<br/>` for line breaks; avoid `\n`, which some
+renderers show literally.
 
 **B. Director Brief** — self-contained markdown with:
 - Project, branch, tech stack, quality gates
@@ -197,11 +228,31 @@ Director (Opus) — coordinator only, never implements
   - Read existing `.claude/settings.json` (or start from `{}` if missing)
   - Merge in: `"statusLine": {"type": "command", "command": "bash <abs-path>/tmp/sprint-status.sh"}`
   - Write back — preserve all other existing settings
-- Present ASCII diagram + topology + cost summary in conversation
+- Present the **ASCII** diagram + topology + cost summary in conversation. Never paste
+  the mermaid fence on screen — the terminal renders it as raw source. Same content,
+  ASCII form:
+  ```
+  Wave 1 (Foundation)     Wave 2 (Core)        Wave 3 (Polish)
+  ┌─────────────────┐    ┌────────────────┐    ┌────────────────┐
+  │ T-01 schema  ◆  │    │ T-04 API    ●  │    │ T-07 tests  ●  │
+  │ T-02 models  ◆  │───▶│ T-05 UI     ●  │───▶│ T-08 docs   ●  │
+  │ T-03 config  ●  │    │ T-06 hooks  ●  │    │ T-09 demo   ●  │
+  └─────────────────┘    └────────────────┘    └────────────────┘
+  ★ = fable  ◆ = opus  ● = sonnet
+
+  Director (Opus) — coordinator only, never implements
+  ├── QA Agent — independent verification, never implements
+  ├── Backend Worker-1: T-01 (test), T-04 (impl)
+  ├── Backend Worker-2: T-02 (test), T-05 (impl)
+  └── Frontend Worker-3: T-06 (test), T-07 (impl), T-08, T-09
+  ```
 - Tell user: "Review and adjust, or run `/hs-sw-sprint-go` to launch"
 
 ## Rules
 
+- **Diagrams: mermaid in files, ASCII on screen.** Anything written to a `.md` file
+  uses mermaid; anything presented in conversation uses ASCII, because the terminal
+  can't render mermaid.
 - Use extended thinking for wave analysis and topology decisions
 - All ticket operations use `bd` CLI
 - If dependency graph has cycles: report and stop

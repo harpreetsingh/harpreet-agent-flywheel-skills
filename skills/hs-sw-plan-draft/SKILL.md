@@ -70,8 +70,15 @@ Collapse sections that aren't relevant — don't fill them with filler.
 **A PLAN without at least one diagram is incomplete.** Do not consider the plan
 done until the diagram requirement is satisfied.
 
-Every plan needs a minimum of one ASCII diagram. Complex features need more.
-Use ASCII — no external tools, no image links. Diagrams live inline in the plan.
+Every plan needs a minimum of one diagram. Complex features need more.
+
+**Use mermaid.** The plan is a markdown file read in GitHub/VS Code/Obsidian, where
+mermaid renders — and it's still plain text in a fence everywhere else. No external
+tools, no image links. Diagrams live inline in the plan.
+
+In mermaid node labels use `<br/>` for line breaks; avoid `\n`, which some renderers
+show literally. If you summarize the plan on screen in conversation, redraw that
+summary in ASCII — the terminal doesn't render mermaid.
 
 | Feature complexity | Required diagrams |
 |--------------------|-------------------|

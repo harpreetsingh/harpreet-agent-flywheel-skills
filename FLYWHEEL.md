@@ -105,7 +105,7 @@ wave-gate, sprint-close, review, recovery).
 │    /sprint-exec-plan                                                    │
 │         ↓                                                               │
 │    Inventory → TDD pairing → wave analysis → model tiers (opus/sonnet)  │
-│    → domain balance → team topology → ASCII diagram                     │
+│    → domain balance → team topology → wave diagram                      │
 │         ↓                                                               │
 │    OUTPUT: tmp/sprint-exec-plan.md                                      │
 │            docs/features/<slug>/sprint-plan.md (persistent copy)        │
@@ -249,7 +249,7 @@ Global (cross-project):
 | `/beads-create` | Decompose PLAN into epics + TDD beads with deps, `## Files`, `## Contract`, `## Steps` | `PLAN.md` `[--labels]` | Beads epic with wired tickets |
 | `/beads-review` | Self-sufficiency, right-sizing, contract consistency, file-overlap graph | — | Fixes applied to beads |
 | `/beads-label` | Add labels to an epic and all its tickets (or explicit IDs) | `<epic-id> --labels` | Labeled bead set |
-| `/sprint-exec-plan` | Wave analysis, model tiers, team topology, ASCII deployment diagram | Beads backlog | `sprint-exec-plan.md`, `sprint-plan.md` |
+| `/sprint-exec-plan` | Wave analysis, model tiers, team topology, mermaid deployment diagram | Beads backlog | `sprint-exec-plan.md`, `sprint-plan.md` |
 | `/sprint-go` | Launch sprint: spawn Director in background. `--dry-run` to preview. | Sprint plan | Director agent (autonomous) |
 | `/docs-gen-int` | Synthesize internal engineering docs from sprint artifacts | Feature dir | `architecture.md`, `api.md`, `cli.md`, `data-model.md`, `what-shipped.md`, `lessons.md` |
 | `/docs-gen-ext` | Extract user-facing docs from internal artifacts | Feature dir | `docs/site/features/`, `guides/`, `reference/` |

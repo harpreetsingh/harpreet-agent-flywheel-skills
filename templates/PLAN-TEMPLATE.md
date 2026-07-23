@@ -74,37 +74,44 @@ cover it.]
 ### High-Level Design
 
 [How the system works end-to-end. **A diagram is required — not optional.**
-ASCII is fine. This section should let someone understand the architecture in
+Use mermaid. This section should let someone understand the architecture in
 2 minutes. If you can't draw it, you don't understand it well enough yet.]
 
-```
-[REQUIRED: ASCII diagram of components and data flow]
+```mermaid
+[REQUIRED: mermaid diagram of components and data flow]
 
 Example:
-User → Frontend → API → Service → Database
-                    ↓
-                 External API
+flowchart LR
+  U[User] --> FE[Frontend]
+  FE --> API[API]
+  API --> SVC[Service]
+  SVC --> DB[(Database)]
+  API --> EXT[External API]
 ```
 
 [Add more diagrams as needed. One diagram per flow/concern is clearer than
 trying to show everything in one. Common additions:]
 
 **User Flow** *(required if there's a user-facing interaction)*
-```
-[Step 1] → [Step 2] → [Step 3]
-               ↓
-          [Error path]
+```mermaid
+flowchart LR
+  S1[Step 1] --> S2[Step 2] --> S3[Step 3]
+  S2 --> ERR[Error path]
 ```
 
 **Sequence Diagram** *(required if there are async operations or multi-actor flows)*
-```
-User        Frontend      Backend       DB
- |              |             |          |
- |--action---→  |             |          |
- |              |--request--→ |          |
- |              |             |--query-→ |
- |              |             |←-result- |
- |←--response-- |←-response-- |          |
+```mermaid
+sequenceDiagram
+  participant User
+  participant Frontend
+  participant Backend
+  participant DB
+  User->>Frontend: action
+  Frontend->>Backend: request
+  Backend->>DB: query
+  DB-->>Backend: result
+  Backend-->>Frontend: response
+  Frontend-->>User: response
 ```
 
 ### Key Decisions
