@@ -183,7 +183,7 @@ If any remain `✗`, call them out explicitly and ask if the user wants another 
 
 - Does the problem statement match what the solution actually solves?
 - Are there deliverables described in prose that should be a diagram? (paragraphs describing flows = red flag)
-- Are there diagrams? Every non-trivial plan needs at least one ASCII diagram.
+- Are there diagrams? Every non-trivial plan needs at least one mermaid diagram.
 - CLI commands specified for every API/UI feature? `--json` included?
 - Testing strategy section present? Identifies which deliverables need tests,
   what kind, key scenarios, and mock boundaries?

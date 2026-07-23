@@ -101,8 +101,9 @@ Ask:
   run from the terminal? All commands must support `--json` for machine consumption.)
 
 After they answer: synthesize a rough solution sketch in your response. Use an ASCII
-diagram if it helps clarify the flow. Ask: "Does this capture the direction, or am I
-off?"
+diagram if it helps clarify the flow — this sketch is spoken in conversation, and the
+terminal can't render mermaid. (The diagram in the written pitch.md is mermaid; see
+the template below.) Ask: "Does this capture the direction, or am I off?"
 
 ### Step 4 — Rabbit Holes
 
@@ -172,17 +173,14 @@ the work runs long. Any hard deadlines.]
 [The rough approach. What the user does differently. Happy path in 3-5 steps.
 The one core interaction that makes this valuable.
 
-Include an ASCII diagram if the flow has more than 2 steps or involves
+Include a mermaid diagram if the flow has more than 2 steps or involves
 multiple components. Example:]
 
-\`\`\`
-User types in search bar
-        ↓
-Debounced query → /api/skills/search
-        ↓
-Results appear inline (no page reload)
-        ↓
-User clicks skill → added to agent
+\`\`\`mermaid
+flowchart TD
+  A[User types in search bar] --> B[Debounced query<br/>/api/skills/search]
+  B --> C[Results appear inline<br/>no page reload]
+  C --> D[User clicks skill → added to agent]
 \`\`\`
 
 [Fat-marker level of detail. Leave implementation decisions to the builder.]
@@ -232,7 +230,7 @@ A good pitch passes this checklist. Verify before writing:
 
 - [ ] Problem is a concrete user situation, not an abstraction
 - [ ] Appetite is stated as a constraint (not just an estimate)
-- [ ] Solution has a happy path and at least one ASCII diagram (if flow is non-trivial)
+- [ ] Solution has a happy path and at least one mermaid diagram (if flow is non-trivial)
 - [ ] Every rabbit hole has an explicit decision (in/out/defer)
 - [ ] No-Gos are explicit, not implied
 - [ ] CLI commands are specified (what the user/agent runs from terminal, with `--json`)
